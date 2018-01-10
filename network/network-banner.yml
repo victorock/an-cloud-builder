@@ -1,0 +1,19 @@
+---
+- hosts: all
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: configure the login banner
+      net_banner:
+        banner: "{{ 'motd' if ansible_network_os == 'nxos' else 'login' }}"
+        text: "{{ network_banner }}"
+        state: present
+      when: network_banner is defined
+
+    - name: configure the MOTD
+      net_banner:
+        banner: motd
+        text: "{{ network_motd }}"
+        state: present
+      when: network_motd is defined and ansible_network_os != 'nxos'

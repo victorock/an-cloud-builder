@@ -1,0 +1,112 @@
+---
+- set_fact:
+    cloud_instance_image: "{{ cloud_instance_item.image }}"
+    cloud_instance_size: "{{ cloud_instance_item.size }}"
+
+- block:
+  - block:
+    - block:
+      - name: Mapping cloud instance size
+        set_fact:
+          cloud_instance_size: "{{ cloud_instance_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.size] }}"
+        when: cloud_instance_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.size] is defined
+      when: cloud_instance_map[cloud_vpc_data.provider][cloud_vpc_data.region] is defined
+    when: cloud_instance_map[cloud_vpc_data.provider] is defined
+  when: cloud_instance_map is defined
+
+- block:
+  - block:
+    - block:
+      - name: Mapping cloud image
+        set_fact:
+          cloud_instance_image: "{{ cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.image] }}"
+        when: cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.image] is defined
+      when: cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region] is defined
+    when: cloud_image_map[cloud_vpc_data.provider] is defined
+  when: cloud_image_map is defined
+
+- block:
+    - set_fact:
+        instance_volume:
+          device_name: "{{ cloud_instance_item.volume_device | default('/dev/sda1') }}"
+          volume_type: "{{ cloud_instance_item.volume_type | default('gp2') }}"
+          volume_size: "{{ cloud_instance_item.volume_size }}"
+          delete_on_termination: true
+
+    - set_fact:
+        volume_list: "{{ [instance_volume] }}"
+  when: cloud_instance_item.volume_size is defined
+
+
+- name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
+  ec2:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    key_name: "{{ cloud_instance_item.key_name }}"
+    region: "{{ cloud_vpc_data.region }}"
+    instance_type: "{{ cloud_instance_size }}"
+    instance_tags:
+      Name: "{{ cloud_instance_item.name }}"
+      Environment: "{{ cloud_vpc_data.project }}"
+      Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
+    image: "{{ cloud_instance_image }}"
+    volumes: "{{ volume_list | default([]) }}"
+    group_id: "{{ security_group_map[cloud_instance_item.interfaces[0].acl] }}"
+    exact_count: "{{ cloud_instance_item.count | default(1) if cloud_state == 'present' else '0' }}"
+    count_tag:
+      - Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
+    wait: yes
+    vpc_subnet_id: "{{ subnet_map[cloud_instance_item.interfaces[0].subnet] }}"
+    private_ip: "{{ cloud_instance_item.interfaces[0].private_ip | ipaddr('address') if cloud_instance_item.interfaces[0].private_ip is defined else omit }}"
+    assign_public_ip: "{{ cloud_instance_item.interfaces[0].public_ip | default(omit) }}"
+    user_data: "{{ cloud_instance_item.user_data | default(omit) }}"
+  register: instance_results
+
+- name: Get the instance facts
+  ec2_instance_facts:
+    region: "{{ cloud_vpc_data.region }}"
+    instance_ids:
+      - "{{ instance_results.tagged_instances[0].id }}"
+  register: instance_facts_results
+
+- name: Dereference instance facts
+  set_fact:
+    instance_facts: "{{ instance_facts_results.instances[0]}}"
+
+- name: Add tags to Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
+  ec2_tag:
+    region: "{{ cloud_vpc_data.region }}"
+    resource: "{{ instance_facts.instance_id }}"
+    state: present
+    tags: "{{ cloud_instance_item.tags }}"
+  when: (cloud_instance_item.tags is defined) and (instance_facts is defined)
+
+- include_tasks: "aws-interface.yml"
+  vars:
+    cloud_interface_data: "{{ cloud_interface_item.1 }}"
+    cloud_interface_index: "{{ cloud_interface_item.0 }}"
+  with_indexed_items: "{{ cloud_instance_item.interfaces }}"
+  when: instance_facts.network_interfaces[cloud_interface_item.0] is not defined
+  loop_control:
+    loop_var: cloud_interface_item
+
+- name: Set the IP address for the instance
+  set_fact:
+    instance_ip_address: "{{ instance_facts.public_ip_address | default(instance_facts.private_ip_address, true) }}"
+  when: instance_facts.tagged_instances is defined
+
+- block:
+    - name: Populate instance dict
+      set_fact:
+        cloud_instance_dict: "{{ cloud_inst ance_dict|default({})|combine({cloud_instance_item.name: {'ip': instance_ip_address, 'private_ip': instance_facts.tagged_instances[0].private_ip} }) }}"
+      when: cloud_dns_provider is defined and instance_ip_address is defined
+
+    - include: "{{ role_path }}/tasks/{{ cloud_dns_provider }}-record.yml"
+  when: cloud_dns_provider is defined and instance_ip_address is defined
+
+- name: Get the instance facts
+  ec2_instance_facts:
+    region: "{{ cloud_vpc_data.region }}"
+    instance_ids:
+      - "{{ instance_results.tagged_instances[0].id }}"
+  register: instance_facts_results

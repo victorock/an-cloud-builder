@@ -1,0 +1,111 @@
+---
+- name: Read in the cloud inventory
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+
+    - include_role:
+        name: cloud-facts
+      vars:
+        - cloud_vpc_name: "{{ vpc_item.name }}"
+        - cloud_vpc_data: "{{ vpc_item }}"
+      with_items: "{{ vpc_list | default([]) }}"
+      tasks_from: instances
+      loop_control:
+        loop_var: vpc_item
+      delegate_to: localhost
+      run_once: yes
+
+- name: Configure the F5s
+  hosts: f5
+  connection: local
+  gather_facts: False
+  tasks:
+
+    - name: wait for SSH prompt (timeout 10min)
+      wait_for:
+        port: 22
+        host: "{{ ansible_host }}"
+        timeout: 600
+
+    # Changing admin password
+    - name: Set the BigIP admin password
+      expect:
+        command: ssh -i "{{ cloud_name }}_key" -o StrictHostKeyChecking=no admin@"{{ ansible_host }}" modify auth password admin ; save sys config
+        responses:
+          (?i)password: "{{ network_password }}"
+
+    # - name: Set the admin password on the F5
+    #   raw: show
+    #   args:
+    #     executable: ''
+    #   register: result
+
+    # - debug: var=hostvars[inventory_hostname]
+
+    - name: Get BIG-IP facts
+      bigip_facts:
+        server: "{{ ansible_host }}"
+        user: "{{ network_username }}"
+        password: "{{ network_password }}"
+        validate_certs: no
+        include: "system_info,software,self_ip"
+      register: bigip_facts
+
+    - debug: var=bigip_facts
+
+    - name: Set the hostname of the BIG-IP
+      bigip_hostname:
+        server: "{{ ansible_host }}"
+        user: "{{ network_username }}"
+        password: "{{ network_password }}"
+        hostname: "{{ inventory_hostname }}.localhost.localdomain"
+        
+    - name: Add a new node
+      bigip_node:
+        server: "{{ ansible_host }}"
+        user: "{{ admin_username }}"
+        password: "{{ admin_password }}"
+        validate_certs: no
+        state: "present"
+        partition: "Common"
+        host: "{{ interfaces[0].private_ip_address }}"
+        name: "{{ interfaces[0].private_ip_address }}"
+
+    - name: Create the pool1 pool
+      bigip_pool:
+        server: "{{ ansible_host }}"
+        user: "{{ admin_username }}"
+        password: "{{ admin_password }}"
+        validate_certs: no
+        name: "pool1"
+
+    - name: Add host to pool member
+      bigip_pool_member:
+        server: "{{ ansible_host }}"
+        user: "{{ admin_username }}"
+        password: "{{ admin_password }}"
+        validate_certs: no
+        pool: "pool1"
+        partition: "Common"
+        host: "{{ hostvars['smc_f5_demo_host1'].interfaces[0].private_ip_address }}"
+        port: 80
+        description: "web server"
+        connection_limit: 100
+        rate_limit: 50
+        ratio: 2
+
+    - name: Add VS on BIG-IP
+      bigip_virtual_server:
+        server: "{{ bigip1_ip }}"
+        user: "{{ bigip1_username }}"
+        password: "{{ bigip1_password }}"
+        name: "httpvs"
+        destination: "10.168.90.92"
+        port: 80
+        pool: "http-pool"
+        snat: "automap"
+        profiles: "http"
+        validate_certs: False
+      delegate_to: localhost

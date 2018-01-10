@@ -1,0 +1,24 @@
+---
+- hosts: routers
+  connection: local
+  gather_facts: no
+
+  tasks:
+    # - set_fact:
+    #     net_hostname: "{{ inventory_hostname.split('.')[0] }}"
+    #     net_domain_name: "{{ inventory_hostname.split('.')[1:] | join('.') }}"
+
+    - name: configure hostname and domain name
+      net_system:
+        hostname: "{{ inventory_hostname }}"
+        domain_name: "{{ domain_search | default(omit) }}"
+        domain_search: "{{ domain_search | default(omit) }}"
+        lookup_source: "{{ lookup_source | default(omit) }}"
+        name_servers: "{{ name_servers | default(omit) }}"
+
+    - name: configure the login banner
+      net_banner:
+        banner: "{{ 'motd' if ansible_network_os == 'nxos' else 'login' }}"
+        text: "{{ network_banner }}"
+        state: present
+      when: network_banner is defined

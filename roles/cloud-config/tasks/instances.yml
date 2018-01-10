@@ -1,0 +1,18 @@
+---
+- set_fact:
+    cloud_state: 'present'
+  when: cloud_state is not defined
+
+- name: Check for the existance of the cloud-mappings file
+  stat:
+    path: "{{ role_path }}/vars/cloud-mappings.yml"
+  register: stat_result
+
+- name: Include the cloud-mappings file
+  include_vars:
+    file: "{{ role_path }}/vars/cloud-mappings.yml"
+  when: stat_result.stat.exists|bool == true
+
+- include: "{{ role_path }}/tasks/{{ cloud_vpc_data.provider }}-instances.yml"
+  tags:
+    - cloud-instances

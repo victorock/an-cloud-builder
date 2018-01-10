@@ -1,0 +1,9 @@
+interfaces:
+{% for interface in interfaces %}
+{% if interface.private_ip_address|ipaddr %}
+  {{ interface.name }}:
+    private_ip_address: {{ interface.private_ip_address }}
+    public_ip_address: {{ interface.public_ip_address }}
+    public_dns_name: {{ interface.public_dns_name }}
+{% endif %}
+{% endfor %}

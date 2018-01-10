@@ -1,0 +1,15 @@
+---
+- name: Run command on IOS and evaulate the output
+  hosts: network
+  gather_facts: no
+  connection: local
+  tasks:
+    - name: show version and show interfaces
+      ios_command:
+        commands:
+          - show version
+        wait_for:
+          - result[0] contains IOS
+      register: command_results
+
+    - debug: var=command_results.stdout_lines

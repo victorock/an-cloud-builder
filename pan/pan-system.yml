@@ -1,0 +1,73 @@
+---
+- name: Configure the PAN system attributes
+  hosts: pan
+  connection: local
+  gather_facts: False
+
+  # roles:
+  #   - role: PaloAltoNetworks.paloaltonetworks
+
+  tasks:
+
+    # - debug: var=hostvars[inventory_hostname]
+
+    - name: wait for SSH prompt (timeout 10min)
+      wait_for:
+        port: 22
+        host: "{{ ansible_host }}"
+        timeout: 600
+
+    - name: set admin password
+      panos_admpwd:
+        ip_address: "{{ ansible_host }}"
+        key_filename: "{{ ansible_ssh_private_key_file }}"
+        newpassword: "{{ network_password }}"
+      register: result
+      until: not result | failed
+      retries: 10
+      delay: 30
+
+    # - name: generate self signed certificate
+    #   panos_cert_gen_ssh:
+    #     ip_address: "{{ ansible_host }}"
+    #     password: "{{ network_password }}"
+    #     cert_cn: "{{ ansible_host }}"
+    #     cert_friendly_name: "{{ ansible_host }}"
+    #     signed_by: "root-ca"
+
+    - name: configure ethernet1/1 for DHCP
+      panos_interface:
+        ip_address: "{{ ansible_host }}"
+        password: "{{ network_password }}"
+        if_name: "ethernet1/1"
+        zone_name: "untrust"
+        create_default_route: "yes"
+        commit: False
+
+    - name: configure ethernet1/2 for DHCP
+      panos_interface:
+        ip_address: "{{ ansible_host }}"
+        password: "{{ network_password }}"
+        if_name: "ethernet1/2"
+        zone_name: "trust"
+        create_default_route: "no"
+        commit: False
+    #
+    # - name: Create Objects
+    #   panos_object:
+    #     ip_address: "{{ pan_ip_address }}"
+    #     password: "{{ admin_password }}"
+    #     operation: "{{ item.operation }}"
+    #     serviceobject: "{{ item.serviceobject }}"
+    #     destination_port: "{{ item.destination_port }}"
+    #     protocol: "{{ item.protocol }}"
+    #     description: "{{ item.description }}"
+    #   with_items: "{{ panos_objects }}"
+    #   register: command_result
+    #   failed_when: "'MODULE FAILURE' in command_result.msg"
+    #   changed_when: "'already exists' in command_result.msg"
+
+    - name: Commit the configuration
+      panos_commit:
+        ip_address: "{{ ansible_host }}"
+        password: "{{ network_password }}"

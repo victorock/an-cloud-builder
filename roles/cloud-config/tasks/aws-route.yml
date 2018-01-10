@@ -1,0 +1,60 @@
+---
+- name: Get instance ID for instance {{ cloud_route_item.instance }}
+  ec2_remote_facts:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    region: "{{ cloud_vpc_data.region }}"
+    filters:
+      vpc-id: "{{ vpc_id }}"
+      "tag:Name": "{{ cloud_route_item.instance }}"
+  register: instance_facts
+
+- name: Set Instance ID
+  set_fact:
+    instance_id: "{{ instance_facts.instances[0].id }}"
+  when: instance_facts.instances[0] is defined
+  failed_when: instance_facts.instances[0] is not defined
+
+- debug: var=instance_id
+
+- name: Find interface for instance {{ cloud_route_item.instance }} on subnet {{ subnet_map[cloud_route_item.subnet] }}
+  ec2_eni_facts:
+    region: "{{ cloud_vpc_data.region }}"
+    filters:
+      attachment.instance-id: "{{ instance_id }}"
+      subnet-id: "{{ subnet_map[cloud_route_item.subnet] }}"
+  register: eni_facts
+
+- debug: var=eni_facts
+
+- name: Disable Source/Dest check on instance {{ cloud_route_item.instance }}
+  ec2_eni:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    instance_id: "{{ instance_id }}"
+    eni_id: "{{ eni_facts.network_interfaces[0].network_interface_id }}"
+    region: "{{ cloud_vpc_data.region }}"
+    subnet_id: "{{ subnet_map[cloud_route_item.subnet] }}"
+    source_dest_check: false
+    state: present
+    delete_on_termination: true
+
+- debug: var=subnet_map[cloud_route_item.subnet]
+
+- name: Route {{ cloud_route_item.cidr }} for subnet {{ cloud_route_item.subnet }} to instance {{ cloud_route_item.instance }}
+  ec2_vpc_route_table:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ cloud_vpc_data.region }}"
+    purge_routes: false
+    tags:
+      Name: "{{ cloud_route_item.subnet }}"
+    subnets:
+      - "{{ subnet_map[cloud_route_item.subnet] }}"
+    routes:
+      - dest: "{{ cloud_route_item.cidr }}"
+        interface_id: "{{ eni_facts.network_interfaces[0].network_interface_id }}"
+  register: private_route_table
+
+- debug: var=private_route_table

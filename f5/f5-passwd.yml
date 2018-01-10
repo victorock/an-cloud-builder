@@ -1,0 +1,19 @@
+---
+- name: Configure the F5s
+  hosts: f5
+  connection: local
+  gather_facts: False
+  tasks:
+
+    - name: wait for SSH prompt (timeout 10min)
+      wait_for:
+        port: 22
+        host: "{{ ansible_host }}"
+        timeout: 600
+
+    # Changing admin password
+    - name: Set the BigIP admin password
+      expect:
+        command: ssh -i "{{ ansible_ssh_private_key_file }}" -o StrictHostKeyChecking=no admin@"{{ ansible_host }}" modify auth password admin ; save sys config
+        responses:
+          (?i)password: "{{ network_password }}"

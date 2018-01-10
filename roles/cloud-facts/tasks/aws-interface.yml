@@ -1,0 +1,28 @@
+---
+- name: Get the information for this instance interface
+  ec2_eni_facts:
+    region: "{{ cloud_vpc_data.region }}"
+    filters:
+      'attachment.instance-id': "{{ instance_facts_item.instance_id }}"
+      'attachment.device-index': "{{ cloud_interface_item.0 }}"
+  register: eni_facts
+
+- name: De-reference eni facts
+  set_fact:
+    interface_facts: "{{ eni_facts.network_interfaces[0] }}"
+
+- debug: var=interface_facts
+
+- name: Build the interface dict
+  set_fact:
+    interface_item:
+      name: "{{ cloud_interface_item.1.name | default(omit) }}"
+      private_ip_cidr: "{{ cloud_interface_item.1.private_ip_cidr | default('') }}"
+      private_ip_address: "{{ interface_facts.private_ip_address }}"
+      public_dns_name: "{{ interface_facts.association.public_dns_name if interface_facts.association is defined else '' }}"
+      public_ip_address: "{{ interface_facts.association.public_ip if interface_facts.association is defined else '' }}"
+  register: interface_facts
+
+- name: Add the interface to the interfaces dict
+  set_fact:
+    instance_interfaces: "{{ instance_interfaces | default([]) + [ interface_item ] }}"

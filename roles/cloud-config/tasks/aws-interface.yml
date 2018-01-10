@@ -1,0 +1,70 @@
+---
+- name: Get the subnet ID for subnet {{ cloud_network_item.name }}
+  ec2_vpc_subnet_facts:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    region: "{{ cloud_vpc_data.region }}"
+    filters:
+      vpc-id: "{{ vpc_id }}"
+      "tag:Name": "{{ cloud_interface_data.subnet }}"
+  register: subnet_facts
+
+- name: Set Subnet ID
+  set_fact:
+    subnet_id: "{{ subnet_facts.subnets[0].id }}"
+  failed_when: subnet_facts.subnets[0] is not defined
+
+- name: Create interface {{ cloud_interface_index }} for instance {{ cloud_instance_item.name }} ID {{ instance_facts.instance_id }} in subnet {{ cloud_interface_data.subnet }}
+  ec2_eni:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    instance_id: "{{ instance_facts.instance_id }}"
+    attached: True
+    region: "{{ cloud_vpc_data.region }}"
+    device_index: "{{ cloud_interface_index }}"
+    description: "{{ cloud_interface_data.description | default(omit) }}"
+    private_ip_address: "{{ cloud_interface_data.private_ip | default(omit) }}"
+    subnet_id: "{{ subnet_id }}"
+    state: present
+    delete_on_termination: True
+    security_groups: "{{ cloud_interface_data.acl | default(omit) }}"
+  register: interface_facts
+
+- name: Associate a public IP with interface {{ interface_facts.interface.id }} index {{ cloud_interface_index }}
+  ec2_eip:
+    region: "{{ cloud_vpc_data.region }}"
+    device_id: "{{ interface_facts.interface.id }}"
+    in_vpc: yes
+    ip: "{{ cloud_interface_data.public_ip if cloud_interface_data.public_ip | ipaddr else omit}}"
+    release_on_disassociation: yes
+  when: cloud_interface_data.public_ip is defined
+
+- block:
+    - name: Disable Source/Dest check on interface {{ interface_facts.interface.id }}
+      ec2_eni:
+        aws_access_key: "{{ aws_access_key | default(omit) }}"
+        aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+        instance_id: "{{ instance_facts.instance_id }}"
+        eni_id: "{{ interface_facts.interface.id }}"
+        region: "{{ cloud_vpc_data.region }}"
+        subnet_id: "{{ subnet_id }}"
+        source_dest_check: false
+        state: present
+        delete_on_termination: true
+
+    - name: Set up default route for subnet {{ cloud_network_item.name }} to instance {{ cloud_instance_item.name }}
+      ec2_vpc_route_table:
+        aws_access_key: "{{ aws_access_key | default(omit) }}"
+        aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ cloud_vpc_data.region }}"
+        purge_routes: true
+        tags:
+          Name: "{{ cloud_interface_data.subnet }}"
+        subnets:
+          - "{{ subnet_id }}"
+        routes:
+          - dest: 0.0.0.0/0
+            interface_id: "{{ interface_facts.interface.id }}"
+      register: private_route_table
+  when: cloud_interface_data.gateway is defined and cloud_interface_data.gateway | bool

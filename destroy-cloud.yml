@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    # - name: Generate SSH keys
+    #   shell: ssh-keygen -b 2048 -t rsa -f "{{ cloud_name }}_key" -I "{{ cloud_name }}" -q -N ""
+    #   args:
+    #     creates: "./{{ cloud_name }}_key"
+    #   delegate_to: localhost
+    #   run_once: yes
+
+    - include_role:
+        name: cloud-destroy
+      vars:
+        - cloud_vpc_name: "{{ vpc_item.name }}"
+        - cloud_vpc_data: "{{ vpc_item }}"
+      with_items: "{{ vpc_list | default([]) }}"
+      loop_control:
+        loop_var: vpc_item
+      delegate_to: localhost
+      run_once: yes

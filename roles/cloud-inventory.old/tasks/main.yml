@@ -1,0 +1,6 @@
+---
+- include_tasks: "aws-inventory.yml"
+  vars:
+    cloud_instance_data: "{{ cloud_vpc_data.instances | default([]) }}"
+  tags:
+    - inventory

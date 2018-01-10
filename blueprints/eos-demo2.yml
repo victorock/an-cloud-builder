@@ -1,0 +1,132 @@
+---
+cloud_user: ec2-user
+cloud_name: smc_eos_demo
+cloud_provider: aws
+cloud_region: us-east-1
+cloud_dns_zone: rhdemo.io
+cloud_dns_domain: "{{ cloud_name }}.{{ cloud_dns_zone }}"
+cloud_dns_provider: route53
+inventory_dir: "{{ playbook_dir }}/inventory/{{ cloud_name }}"
+acl_dict:
+  host-acl:
+    - { src_ip: 0.0.0.0/0, proto: all }
+  rtr-acl:
+    - { src_ip: 0.0.0.0/0, proto: all }
+ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', './{{ cloud_name }}_key.pub') }}' }"
+vnf_outside_interface: ethernet1/1
+vnf_inside_interface: ethernet1/2
+vpc_list:
+  - name: "{{ cloud_name }}_transit"
+    provider: "{{ cloud_provider }}"
+    region: "{{ cloud_region }}"
+    project: "{{ cloud_name }}"
+    cidr: 10.0.0.0/16
+    bgp_asn: 65100
+    acl_list:
+      - rtr-acl
+    networks:
+      - { name: "{{ cloud_name }}-outside", cidr: "10.0.0.0/24", az: "{{ cloud_region }}a" }
+    instances:
+      - name: "{{ cloud_name }}_transit_rtr"
+        size: medium
+        image: eos-eft
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - name: ethernet1
+            subnet: "{{ cloud_name }}-outside"
+            acl: rtr-acl
+            public_ip: true
+        tags:
+          Owner: "{{ cloud_name }}"
+          network_os: eos
+          groups: "routers,hubs"
+  - name: "{{ cloud_name }}_vpc1"
+    provider: "{{ cloud_provider }}"
+    region: "{{ cloud_region }}"
+    project: "{{ cloud_name }}"
+    cidr: 10.1.0.0/16
+    bgp_asn: 65101
+    acl_list:
+      - host-acl
+      - rtr-acl
+    networks:
+      - { name: "{{ cloud_name }}-outside", cidr: "10.1.0.0/24", az: "{{ cloud_region }}a" }
+      - { name: "{{ cloud_name }}-inside", cidr: "10.1.1.0/24", az: "{{ cloud_region }}a" }
+    instances:
+      - name: "{{ cloud_name }}_vpc1_host1"
+        size: micro
+        image: rhel7
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - subnet: "{{ cloud_name }}-inside"
+            acl: host-acl
+            public_ip: false
+        tags:
+          Owner: "{{ cloud_name }}"
+          groups: ssh
+      - name: "{{ cloud_name }}_vpc1_rtr"
+        size: medium
+        image: eos-eft
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - name: ethernet1
+            subnet: "{{ cloud_name }}-outside"
+            acl: rtr-acl
+            public_ip: true
+          - name: ethernet2
+            subnet: "{{ cloud_name }}-inside"
+            private_ip_address: "10.1.1.254"
+            private_ip_cidr: '10.1.1.254/24'
+        tags:
+          Owner: "{{ cloud_name }}"
+          network_os: eos
+          groups: "routers,spokes"
+    routes:
+      - { subnet: "{{ cloud_name }}-inside", cidr: "0.0.0.0/0", instance: "{{ cloud_name }}_vpc1_rtr" }
+  - name: "{{ cloud_name }}_vpc2"
+    provider: "{{ cloud_provider }}"
+    region: "{{ cloud_region }}"
+    project: "{{ cloud_name }}"
+    cidr: 10.2.0.0/16
+    bgp_asn: 65102
+    acl_list:
+      - host-acl
+      - rtr-acl
+    networks:
+      - { name: "{{ cloud_name }}-outside", cidr: "10.2.0.0/24", az: "{{ cloud_region }}a" }
+      - { name: "{{ cloud_name }}-inside", cidr: "10.2.1.0/24", az: "{{ cloud_region }}a" }
+    instances:
+      - name: "{{ cloud_name }}_vpc2_host1"
+        size: micro
+        image: rhel7
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - subnet: "{{ cloud_name }}-inside"
+            acl: host-acl
+            public_ip: false
+        tags:
+          Owner: "{{ cloud_name }}"
+          groups: ssh
+      - name: "{{ cloud_name }}_vpc2_rtr"
+        size: medium
+        image: eos-eft
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - name: ethernet1
+            subnet: "{{ cloud_name }}-outside"
+            acl: rtr-acl
+            public_ip: true
+          - name: ethernet2
+            subnet: "{{ cloud_name }}-inside"
+            private_ip_address: "10.2.1.254"
+            private_ip_prefix: 24
+            private_ip_cidr: '10.2.1.254/24'
+        tags:
+          Owner: "{{ cloud_name }}"
+          network_os: eos
+          groups: "routers,spokes"
+    routes:
+      - { subnet: "{{ cloud_name }}-inside", cidr: "0.0.0.0/0", instance: "{{ cloud_name }}_vpc2_rtr" }
+tunnels:
+  - { index: 0, key: 101, src_host: "{{ cloud_name }}_transit_rtr", src_ip_addr: "10.255.0.1/30", dst_host: "{{ cloud_name }}_vpc1_rtr", dst_ip_addr: "10.255.0.2/30" }
+  - { index: 1, key: 101, src_host: "{{ cloud_name }}_transit_rtr", src_ip_addr: "10.255.0.5/30", dst_host: "{{ cloud_name }}_vpc2_rtr", dst_ip_addr: "10.255.0.6/30" }

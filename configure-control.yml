@@ -1,0 +1,95 @@
+---
+- name: Configure the control node
+  hosts: control
+  become: yes
+  tasks:
+
+    - debug: msg="Control node public IP':' {{ ansible_host }}"
+
+    # - name: wait for SSH prompt (timeout 10min)
+    #   wait_for:
+    #     port: 22
+    #     host: "{{ ansible_host }}"
+    #     timeout: 600
+
+    - name: Add EPEL repository
+      yum_repository:
+        name: epel
+        description: EPEL YUM repo
+        baseurl: https://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+
+    # - name: Install EPEL repo.
+    #   yum:
+    #     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    #     state: present
+
+    - name: Import EPEL GPG key.
+      rpm_key:
+        key: "https://mirrors.kernel.org/fedora-epel//RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+        state: present
+
+    - name: Update YUM packages
+      yum:
+        name: '*'
+        state: latest
+
+    - name: Install YUM packages
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - python-pip
+        - python-devel
+        - openssl-devel
+        - sudo
+
+    - name: Install PIP packages
+      pip:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - ansible
+        - paramiko
+        - PyYAML
+        - Jinja2
+        - httplib2
+        - six
+        - shade
+        - jxmlease
+        - ncclient
+        - pexpect
+        - f5-sdk
+        - bigsuds
+        - pan-python
+        - pandevice
+
+    # - name: Copy the ssh key to {{ cloud_user }}
+    #   copy:
+    #     src: "{{ cloud_name }}_key"
+    #     dest: "~/.ssh/id_rsa"
+    #     mode: 0600
+    #
+    # - name: Create the inventory directory
+    #   file:
+    #     path: ~/inventory
+    #     state: directory
+    #     mode: 0755
+    #
+    # - name: Create the inventory file on the control node(s)
+    #   template:
+    #     src: inventory.j2
+    #     dest: ~/inventory/hosts
+    #
+    # - name: Create the host_vars directory
+    #   file:
+    #     path: ~/inventory/host_vars
+    #     state: directory
+    #     mode: 0755
+    #
+    # - name: Create the group_vars directory
+    #   file:
+    #     path: ~/inventory/group_vars
+    #     state: directory
+    #     mode: 0755
+    #
+    # - debug: var=hostvars[inventory_hostname]

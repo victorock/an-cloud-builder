@@ -1,0 +1,71 @@
+---
+- name: Configure the F5s
+  hosts: f5
+  connection: local
+  gather_facts: False
+  tasks:
+    - name: Create the http-pool pool
+      bigip_pool:
+        server: "{{ ansible_host }}"
+        user: "{{ network_username }}"
+        password: "{{ network_password }}"
+        validate_certs: no
+        name: "http-pool"
+
+    - name: Add a new node
+      bigip_node:
+        server: "{{ ansible_host }}"
+        user: "{{ network_username }}"
+        password: "{{ network_password }}"
+        validate_certs: no
+        state: "present"
+        partition: "Common"
+        host: "{{ hostvars[item].ansible_host }}"
+        name: "{{ hostvars[item].ansible_host }}"
+      when: groups.webserver is defined
+      with_items: "{{ groups.webserver }}"
+
+    # - debug: var="{{ hostvars[item] }}"
+    #   with_items: "{{ groups.app }}"
+# - name: Enumerate the App hosts
+#   hosts: app
+#   connection: local
+#   gather_facts: False
+#   tasks:
+#     - debug: msg="{{ inventory_hostname }} is at address {{ hostvars[inventory_hostname].ansible_host }}"
+#
+# - name: Configure the F5s
+#   hosts: f5
+#   connection: local
+#   gather_facts: False
+#   tasks:
+    - name: Add host to pool member
+      bigip_pool_member:
+        server: "{{ ansible_host }}"
+        user: "{{ network_username }}"
+        password: "{{ network_password }}"
+        validate_certs: no
+        pool: "http-pool"
+        partition: "Common"
+        host: "{{ hostvars[item].ansible_host }}"
+        port: 80
+        description: "web server"
+        connection_limit: 100
+        rate_limit: 50
+        ratio: 2
+      when: groups.webserver is defined
+      with_items: "{{ groups.webserver }}"
+
+    - name: Add VS on BIG-IP
+      bigip_virtual_server:
+        server: "{{ ansible_host }}"
+        user: "{{ network_username }}"
+        password: "{{ network_password }}"
+        name: "httpvs"
+        destination: "{{ interfaces.eth0.private_ip_address }}"
+        port: 80
+        pool: "http-pool"
+        snat: Automap
+        validate_certs: False
+
+    - debug: msg="The Virtual Server Address is {{ interfaces.eth0.public_ip_address }}"

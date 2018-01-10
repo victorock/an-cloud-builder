@@ -1,0 +1,129 @@
+---
+- name: Read in the cloud inventory
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+
+    - include_role:
+        name: cloud-inventory
+      vars:
+        - cloud_vpc_name: "{{ vpc_item.name }}"
+        - cloud_vpc_data: "{{ vpc_item }}"
+      with_items: "{{ vpc_list | default([]) }}"
+      tasks_from: instances
+      loop_control:
+        loop_var: vpc_item
+      delegate_to: localhost
+      run_once: yes
+
+- name: Configure the F5s
+  hosts: f5
+  connection: local
+  gather_facts: False
+  vars:
+    admin_username: admin
+    admin_password: Cisc0123
+    vs_partition: Common
+    vs_name: ansible_test3
+    vs_ip: 10.215.243.159
+  tasks:
+
+    - name: wait for SSH prompt (timeout 10min)
+      wait_for:
+        port: 22
+        host: "{{ ansible_host }}"
+        timeout: 600
+
+    # - name: Set the admin password on the F5
+    #   raw: show
+    #   args:
+    #     executable: ''
+    #   register: result
+
+    - debug: var=hostvars[inventory_hostname]
+
+    - name: Get all of the facts from my BIG-IP
+      bigip_facts:
+          server: "{{ ansible_host }}"
+          user: "{{ admin_username }}"
+          password: "{{ admin_password }}"
+          validate_certs: no
+          include: "system_info,software,self_ip,virtual_server"
+      register: fact_f5
+
+    - debug: var=bigip_facts
+
+    - name: Create the pool1 pool
+      bigip_pool:
+        server: "{{ ansible_host }}"
+        user: "{{ admin_username }}"
+        password: "{{ admin_password }}"
+        validate_certs: no
+        name: "ansible_pool1"
+
+    - set_fact:
+        fqvs_name: "/{{ vs_partition }}/{{ vs_name }}"
+
+    - debug: msg="{{ fqvs_name }} already exists"
+      when: fqvs_name in fact_f5.ansible_facts.virtual_server.keys()
+      failed_when: fqvs_name in fact_f5.ansible_facts.virtual_server.keys()
+
+    - name: Add virtual server
+      bigip_virtual_server:
+          server: "{{ ansible_host }}"
+          user: "{{ admin_username }}"
+          password: "{{ admin_password }}"
+          validate_certs: no
+          state: present
+          partition: "{{ vs_partition }}"
+          name: "{{ fqvs_name }}"
+          destination: "{{ vs_ip }}"
+          port: 443
+          pool: "ansible_pool1"
+          description: Test Virtual Server
+      register: vserver_results
+      when: fqvs_name not in fact_f5.ansible_facts.virtual_server.keys()
+
+    #
+    # - name: Set the hostname of the BIG-IP
+    #   bigip_hostname:
+    #     server: "{{ ansible_host }}"
+    #     user: "{{ admin_username }}"
+    #     password: "{{ admin_password }}"
+    #     hostname: "{{ inventory_hostname }}.localhost.localdomain"
+    #
+    #
+    # - name: Add a new node
+    #   bigip_node:
+    #     server: "{{ ansible_host }}"
+    #     user: "{{ admin_username }}"
+    #     password: "{{ admin_password }}"
+    #     validate_certs: no
+    #     state: "present"
+    #     partition: "Common"
+    #     host: "{{ interfaces[0].private_ip_address }}"
+    #     name: "{{ interfaces[0].private_ip_address }}"
+    #
+    # - name: Create the pool1 pool
+    #   bigip_pool:
+    #     server: "{{ ansible_host }}"
+    #     user: "{{ admin_username }}"
+    #     password: "{{ admin_password }}"
+    #     validate_certs: no
+    #     name: "pool1"
+    #
+    # - name: Add host to pool member
+    #   bigip_pool_member:
+    #     server: "{{ ansible_host }}"
+    #     user: "{{ admin_username }}"
+    #     password: "{{ admin_password }}"
+    #     validate_certs: no
+    #     pool: "pool1"
+    #     partition: "Common"
+    #     host: "{{ hostvars['smc_f5_demo_host1'].interfaces[0].private_ip_address }}"
+    #     port: 80
+    #     description: "web server"
+    #     connection_limit: 100
+    #     rate_limit: 50
+    #     ratio: 2

@@ -1,0 +1,19 @@
+---
+- hosts: routers
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Enable the interfaces
+      net_interface:
+        name: "{{ item.key }}"
+        enabled: True
+      when: item.value.private_ip_address | ipaddr
+      with_dict: "{{ interfaces }}"
+
+    - name: Set eth0 IPv4 address
+      net_l3_interface:
+        name: "{{ item.key }}"
+        ipv4: "{{ item.value.private_ip_address }}/24"
+      when: item.value.private_ip_address | ipaddr
+      with_dict: "{{ interfaces }}"
