@@ -1,17 +1,19 @@
 ---
 - name: Configure the control node
   hosts: control
-  become: yes
+
   tasks:
     - name: Update all packages
       yum:
         name: '*'
         state: latest
+      become: yes
 
     - name: Install EPEL repository
       yum:
         name: epel-release
         state: present
+      become: yes
 
     - name: Install YUM packages
       yum:
@@ -24,10 +26,14 @@
         - openssl-devel
         - sudo
         - git
+        - gcc
+
+      become: yes
 
     - name: Install Ansible
       pip:
         name: 'git+git://github.com/ansible/ansible.git'
+      become: yes
 
     - name: Install PIP packages
       pip:
@@ -50,6 +56,7 @@
         - pandevice
         - requests
         - pyopenssl
+      become: yes
 
     - name: Install the an-demo-kit
       git:
@@ -93,23 +100,3 @@
           host_key_checking = False
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
-
-    #
-    # - name: Create the inventory file on the control node(s)
-    #   template:
-    #     src: inventory.j2
-    #     dest: ~/inventory/hosts
-    #
-    # - name: Create the host_vars directory
-    #   file:
-    #     path: ~/inventory/host_vars
-    #     state: directory
-    #     mode: 0755
-    #
-    # - name: Create the group_vars directory
-    #   file:
-    #     path: ~/inventory/group_vars
-    #     state: directory
-    #     mode: 0755
-    #
-    # - debug: var=hostvars[inventory_hostname]
