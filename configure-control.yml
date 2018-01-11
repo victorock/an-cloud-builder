@@ -3,24 +3,15 @@
   hosts: control
   become: yes
   tasks:
-
-    - debug: msg="Control node public IP':' {{ ansible_host }}"
-
-    # - name: wait for SSH prompt (timeout 10min)
-    #   wait_for:
-    #     port: 22
-    #     host: "{{ ansible_host }}"
-    #     timeout: 600
-
     - name: Install EPEL repository
       yum:
         name: epel-release
         state: present
 
-    # - name: Update YUM packages
-    #   yum:
-    #     name: '*'
-    #     state: latest
+    - name: Update all packages
+      yum:
+        name: '*'
+        state: latest
 
     - name: Install YUM packages
       yum:
@@ -29,6 +20,7 @@
       with_items:
         - python-pip
         - python-devel
+        - python-netaddr
         - openssl-devel
         - sudo
         - git
@@ -56,23 +48,52 @@
         - bigsuds
         - pan-python
         - pandevice
+        - requests
+        - pyopenssl
 
     - name: Install the an-demo-kit
       git:
         repo: https://github.com/ismc/an-demo-kit.git
-        dest: ~/an-demo-kit
+        dest: "~{{ ansible_ssh_user }}/an-demo-kit"
 
-    # - name: Copy the ssh key to {{ cloud_user }}
-    #   copy:
-    #     src: "{{ cloud_name }}_key"
-    #     dest: "~/.ssh/id_rsa"
-    #     mode: 0600
-    #
-    # - name: Create the inventory directory
-    #   file:
-    #     path: ~/inventory
-    #     state: directory
-    #     mode: 0755
+    - name: Create the inventory directory
+      file:
+        path: "~{{ ansible_ssh_user }}/an-demo-kit/inventory/"
+        state: directory
+        owner: "{{ ansible_ssh_user }}"
+        mode: 0755
+
+    - name: Create the keys directory
+      file:
+        path: "~{{ ansible_ssh_user }}/an-demo-kit/keys"
+        state: directory
+        owner: "{{ ansible_ssh_user }}"
+        mode: 0755
+
+    - name: Copy the ssh key
+      copy:
+        src: "{{ ansible_ssh_private_key_file }}"
+        dest: "~{{ ansible_ssh_user }}/an-demo-kit/keys"
+        owner: "{{ ansible_ssh_user }}"
+        mode: 0600
+
+    - name: Copy the inventory
+      copy:
+        src: "{{ inventory_dir }}"
+        dest: "~{{ ansible_ssh_user }}/an-demo-kit/inventory/"
+        owner: "{{ ansible_ssh_user }}"
+        mode: 0644
+
+    - name: create the .ansible.cfg
+      blockinfile:
+        path: "~{{ ansible_ssh_user }}/.ansible.cfg"
+        create: yes
+        block: |
+          [defaults]
+          host_key_checking = False
+
+    - debug: msg="Control node public IP':' {{ ansible_host }}"
+
     #
     # - name: Create the inventory file on the control node(s)
     #   template:

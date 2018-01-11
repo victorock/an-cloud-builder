@@ -14,6 +14,6 @@
     # Changing admin password
     - name: Set the BigIP admin password
       expect:
-        command: ssh -i "{{ ansible_ssh_private_key_file }}" -o StrictHostKeyChecking=no admin@"{{ ansible_host }}" modify auth password admin ; save sys config
+        command: ssh -i "../{{ ansible_ssh_private_key_file }}" -o StrictHostKeyChecking=no admin@"{{ ansible_host }}" modify auth password admin ; save sys config
         responses:
           (?i)password: "{{ network_password }}"
