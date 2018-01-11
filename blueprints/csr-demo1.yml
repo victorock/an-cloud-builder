@@ -1,12 +1,12 @@
 ---
-cloud_user: ec2-user
-cloud_name: smc-csr-demo1
+demo_name: csr-demo1
+cloud_name: "{{ demo_instance | default(lookup('env','USER')) }}-{{ demo_name }}"
 cloud_provider1: aws
 cloud_region1: us-east-1
 cloud_provider2: "{{ cloud_provider1 }}"
 cloud_region2: "{{ cloud_region1 }}"
-ansible_ssh_private_key_file: "./{{ cloud_name }}_key"
 cloud_user: ec2-user
+ansible_ssh_private_key_file: "./keys/{{ cloud_name }}_key"
 
 acl_dict:
   host-acl:
@@ -15,7 +15,7 @@ acl_dict:
     - { src_ip: 0.0.0.0/0, proto: icmp }
   rtr-acl:
     - { src_ip: 0.0.0.0/0, proto: all }
-ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', './{{ cloud_name }}_key.pub') }}' }"
+ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}' }"
 vpc_list:
   - name: "{{ cloud_name }}-vpc1"
     provider: "{{ cloud_provider1 }}"
@@ -32,7 +32,7 @@ vpc_list:
         size: medium
         image: csr-byol
         interfaces:
-          - name: g1
+          - name: GigabitEthernet1
             subnet: "{{ cloud_name }}-vpc1-outside"
             acl: rtr-acl
             public_ip: true
@@ -44,9 +44,10 @@ vpc_list:
         user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
       - name: "{{ cloud_name }}-control"
         size: medium
-        image: rhel7
+        image: centos7
         key_name: "{{ cloud_name }}"
-        volume_size: 20
+        cloud_user: centos
+        # volume_size: 20
         interfaces:
           - name: eth0
             subnet: "{{ cloud_name }}-vpc1-outside"
@@ -66,22 +67,29 @@ vpc_list:
       - host-acl
       - rtr-acl
     networks:
-      - { name: "{{ cloud_name }}-vpc2-outside", cidr: "172.18.0.0/24", az: "{{ cloud_region2 }}b" }
-      - { name: "{{ cloud_name }}-vpc2-inside", cidr: "172.18.1.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "{{ cloud_name }}-vpc2-mgmt", cidr: "172.18.0.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "{{ cloud_name }}-vpc2-outside", cidr: "172.18.1.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "{{ cloud_name }}-vpc2-inside", cidr: "172.18.2.0/24", az: "{{ cloud_region2 }}b" }
     instances:
       - name: "{{ cloud_name }}-rtr2"
         size: medium
         image: csr-byol
         key_name: "{{ cloud_name }}"
         interfaces:
-          - name: g1
+          - name: GigabitEthernet1
+            subnet: "{{ cloud_name }}-vpc2-mgmt"
+            acl: rtr-acl
+            public_ip: true
+            private_ip: 172.18.0.254
+          - name: GigabitEthernet2
             subnet: "{{ cloud_name }}-vpc2-outside"
             acl: rtr-acl
             public_ip: true
-          - name: g2
+            private_ip: 172.18.1.254
+          - name: GigabitEthernet3
             subnet: "{{ cloud_name }}-vpc2-inside"
             acl: rtr-acl
-            private_ip_cidr: '172.18.1.254/24'
+            private_ip: 172.18.2.254
             gateway: yes
         tags:
           Owner: student
@@ -90,7 +98,7 @@ vpc_list:
         user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
       - name: "{{ cloud_name }}-host1"
         size: micro
-        image: rhel7
+        image: centos7
         interfaces:
           - name: eth0
             subnet: "{{ cloud_name }}-vpc2-inside"
@@ -100,10 +108,21 @@ vpc_list:
           Owner: student
           groups: hosts
 
+group_vars:
+  all:
+    domain_name: localdomain
+    domain_search:
+      - localdomain
+      - example.com
+    name_servers:
+      - 8.8.8.8
+      - 8.8.4.4
+
 cloud_image_map:
   aws:
     us-east-1:
       csr-byol: ami-bcbfb9c7
+      centos7: ami-61bbf104
       rhel7: ami-c998b6b2
     us-east-2:
       csr-byol: ami-541e3931

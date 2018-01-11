@@ -1,6 +1,6 @@
 ---
 - hosts: routers
-  connection: local
+  connection: network_cli
   gather_facts: no
 
   tasks:
@@ -11,7 +11,13 @@
       when: item.value.private_ip_address | ipaddr
       with_dict: "{{ interfaces }}"
 
-    - name: Set eth0 IPv4 address
+    - name: Add interfaces to the VRF
+      net_vrf:
+        name: "{{ item.name }}"
+        interfaces: "{{ item.interfaces }}"
+      with_items: "{{ vrf_list | default([]) }}"
+
+    - name: Set Interface IP
       net_l3_interface:
         name: "{{ item.key }}"
         ipv4: "{{ item.value.private_ip_address }}/24"

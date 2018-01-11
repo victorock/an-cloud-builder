@@ -1,13 +1,9 @@
 ---
 - hosts: routers
-  connection: local
+  connection: network_cli
   gather_facts: no
 
   tasks:
-    # - set_fact:
-    #     net_hostname: "{{ inventory_hostname.split('.')[0] }}"
-    #     net_domain_name: "{{ inventory_hostname.split('.')[1:] | join('.') }}"
-
     - name: configure hostname and domain name
       net_system:
         hostname: "{{ inventory_hostname }}"
