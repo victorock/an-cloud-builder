@@ -1,28 +1,45 @@
 Ansible Networking Demo Kit
 =========
 
-This is a set of playbooks used for provisioning workshops in clouds.  It takes a template and creates the architecture specified for each student.
+This is a set of playbooks used for provisioning ansible networking demos in clouds.  It takes a Blueprint and creates that architecture in the cloud provider specified by that blueprint.
 
 Requirements
 ------------
 
-These playbooks require that you have your cloud environment setup correctly for authentication.  They also require the cloud roles linked in as sub modules.  In
-order to pull down all of the required submodules, run:
+These playbooks require that you have your cloud environment setup correctly for authentication.  To pull down the repository:
 
 ```
-git clone https://github.com/network-automation/ansible-network-workshop.git --recursive
+git clone git@github.com:ismc/an-demo-kit.git
 ```
 
-Example
--------
+Examples
+--------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+To build the cloud given the blueprint:
 
 ```
-ansible-playbook -e @net-ws.yml build-workshop.yml
+ansible-playbook -e @blueprints/adk-csr1.yml build-cloud.yml
+```
+
+To destroy the cloud given the blueprint:
+
+```
+ansible-playbook -e @blueprints/adk-csr1.yml destroy-cloud.yml
+```
+
+Generally, dynamic inventories are used with cloud infrastructure.  For the purposes of demonstrating the structure of a file bases inventory, however, one can be created:
+
+```
+ansible-playbook -e @blueprints/adk-csr1.yml create-inventory.yml
 ```
 
 To configure the control node (install Ansible, setup Ansible Inventory, etc)
+
+```
+ansible-playbook -i inventory/scarter-adk-csr1 configure-control.yml
+```
+
+
 ```
 ansible-playbook configure-hosts.yml -i net-ws.hosts
 ```

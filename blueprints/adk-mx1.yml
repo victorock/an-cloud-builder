@@ -1,8 +1,9 @@
 ---
-demo_name: csr-demo1
-cloud_name: "{{ demo_instance | default(lookup('env','USER')) }}-{{ demo_name }}"
+demo_name: adk-mx1
+demo_instance: "{{ lookup('env','USER') }}"
+cloud_name: "{{ demo_name }}.{{ demo_instance }}"
 cloud_provider1: aws
-cloud_region1: us-east-1
+cloud_region1: "{{ opt_region1 | default('us-east-1') }}"
 cloud_provider2: "{{ cloud_provider1 }}"
 cloud_region2: "{{ cloud_region1 }}"
 cloud_user: ec2-user
@@ -17,7 +18,7 @@ acl_dict:
     - { src_ip: 0.0.0.0/0, proto: all }
 ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}' }"
 vpc_list:
-  - name: "{{ cloud_name }}-vpc1"
+  - name: "vpc1.{{ cloud_name }}"
     provider: "{{ cloud_provider1 }}"
     region: "{{ cloud_region1 }}"
     project: "{{ cloud_name }}"
@@ -26,14 +27,14 @@ vpc_list:
       - host-acl
       - rtr-acl
     networks:
-      - { name: "{{ cloud_name }}-vpc1-outside", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "outside.vpc1.{{ cloud_name }}", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
     instances:
-      - name: "{{ cloud_name }}-rtr1"
-        size: medium
-        image: csr-byol
+      - name: "rtr1.{{ cloud_name }}"
+        size: xlarge
+        image: mx-byol
         interfaces:
           - name: GigabitEthernet1
-            subnet: "{{ cloud_name }}-vpc1-outside"
+            subnet: "outside.vpc1.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
         key_name: "{{ cloud_name }}"
@@ -42,7 +43,7 @@ vpc_list:
           network_os: ios
           groups: network,routers
         user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
-      - name: "{{ cloud_name }}-control"
+      - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
         key_name: "{{ cloud_name }}"
@@ -50,15 +51,15 @@ vpc_list:
         # volume_size: 20
         interfaces:
           - name: eth0
-            subnet: "{{ cloud_name }}-vpc1-outside"
+            subnet: "outside.vpc1.{{ cloud_name }}"
             acl: host-acl
             public_ip: true
         tags:
           Owner: student
           groups: control
     routes:
-      - { subnet: "{{ cloud_name }}-vpc1-outside", cidr: "172.18.1.0/24", instance: "{{ cloud_name }}-rtr1" }
-  - name: "{{ cloud_name }}-vpc2"
+      - { subnet: "outside.vpc1.{{ cloud_name }}", cidr: "172.18.1.0/24", instance: "rtr1.{{ cloud_name }}" }
+  - name: "vpc2.{{ cloud_name }}"
     provider: "{{ cloud_provider2 }}"
     region: "{{ cloud_region2 }}"
     project: "{{ cloud_name }}"
@@ -67,27 +68,27 @@ vpc_list:
       - host-acl
       - rtr-acl
     networks:
-      - { name: "{{ cloud_name }}-vpc2-mgmt", cidr: "172.18.0.0/24", az: "{{ cloud_region2 }}b" }
-      - { name: "{{ cloud_name }}-vpc2-outside", cidr: "172.18.1.0/24", az: "{{ cloud_region2 }}b" }
-      - { name: "{{ cloud_name }}-vpc2-inside", cidr: "172.18.2.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "mgmt.vpc2.{{ cloud_name }}", cidr: "172.18.0.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "outside.vpc2.{{ cloud_name }}", cidr: "172.18.1.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "inside.vpc2.{{ cloud_name }}", cidr: "172.18.2.0/24", az: "{{ cloud_region2 }}b" }
     instances:
-      - name: "{{ cloud_name }}-rtr2"
-        size: medium
-        image: csr-byol
+      - name: "rtr2.{{ cloud_name }}"
+        size: xlarge
+        image: mx-byol
         key_name: "{{ cloud_name }}"
         interfaces:
           - name: GigabitEthernet1
-            subnet: "{{ cloud_name }}-vpc2-mgmt"
+            subnet: "mgmt.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
             private_ip: 172.18.0.254
           - name: GigabitEthernet2
-            subnet: "{{ cloud_name }}-vpc2-outside"
+            subnet: "outside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
             private_ip: 172.18.1.254
           - name: GigabitEthernet3
-            subnet: "{{ cloud_name }}-vpc2-inside"
+            subnet: "inside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             private_ip: 172.18.2.254
             gateway: yes
@@ -96,12 +97,12 @@ vpc_list:
           network_os: ios
           groups: network,routers
         user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
-      - name: "{{ cloud_name }}-host1"
+      - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
         interfaces:
           - name: eth0
-            subnet: "{{ cloud_name }}-vpc2-inside"
+            subnet: "inside.vpc2.{{ cloud_name }}"
             acl: host-acl
         key_name: "{{ cloud_name }}"
         tags:
@@ -121,60 +122,14 @@ group_vars:
 cloud_image_map:
   aws:
     us-east-1:
-      csr-byol: ami-bcbfb9c7
+      mx-byol: ami-e5a6839e
       centos7: ami-61bbf104
-      rhel7: ami-c998b6b2
-    us-east-2:
-      csr-byol: ami-541e3931
-      rhel7: ami-0932686c
-    us-west-1:
-      csr-byol: ami-99e5d0f9
-      rhel7: ami-66eec506
-    us-west-2:
-      csr-byol: ami-e4d43d9c
-      rhel7:  ami-9fa343e7
     ca-central-1:
-      csr-byol: ami-6269d706
-      rhel7: ami-9062d0f4
-  azure:
-    eastus:
-      rhel7:
-        offer: CentOS
-        publisher: OpenLogic
-        sku: 7.4
-        version: latest
-      csr-byol:
-        offer: 'cisco-csr-1000v'
-        publisher: 'cisco'
-        product: 'cisco-csr-1000v'
-        name: '16_7'
-        sku: '16_7'
-        version: 'latest'
-    westus:
-      rhel7: { offer: CentOS, publisher: OpenLogic, sku: 7.4, version: latest }
-      csr-byol: { offer: cisco-csr-1000v, publisher: cisco, product: cisco-csr-1000v, name: csr-azure-byol, sku: csr-azure-byol, version: latest }
+      mx-byol: ami-1df44a79
+      centos7: ami-b111aad5
 
-cloud_instance_map:
+cloud_size_map:
   aws:
-    us-east-1:
-      micro: t2.micro
-      medium: t2.medium
-    us-east-2:
-      micro: t2.micro
-      medium: t2.medium
-    us-west-1:
-      micro: t2.micro
-      medium: t2.medium
-    us-west-2:
-      micro: t2.micro
-      medium: t2.medium
-    ca-central-1:
-      micro: t2.micro
-      medium: t2.medium
-  azure:
-    eastus:
-      micro: Standard_A0
-      medium: Standard_DS2_v2
-    westus:
-      micro: Standard_A0
-      medium: Standard_DS2_v2
+    micro: t2.micro
+    medium: t2.medium
+    xlarge: m4.xlarge

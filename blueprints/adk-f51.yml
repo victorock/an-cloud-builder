@@ -1,8 +1,9 @@
 ---
-demo_name: f5-demo1
-cloud_name: "{{ demo_instance | default(lookup('env','USER')) }}-{{ demo_name }}"
+demo_name: adk-f51
+demo_instance: "{{ lookup('env','USER') }}"
+cloud_name: "{{ demo_name }}.{{ demo_instance }}"
 cloud_provider: aws
-cloud_region: us-east-1
+cloud_region: ca-central-1
 cloud_user: ec2-user
 ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
 
@@ -15,7 +16,7 @@ acl_dict:
     - { src_ip: 0.0.0.0/0, proto: all }
 ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}' }"
 vpc_list:
-  - name: "{{ cloud_name }}-vpc"
+  - name: "vpc.{{ cloud_name }}"
     provider: "{{ cloud_provider }}"
     region: "{{ cloud_region }}"
     project: "{{ cloud_name }}"
@@ -24,64 +25,64 @@ vpc_list:
       - apphost-acl
       - f5-acl
     networks:
-      - { name: "{{ cloud_name }}-mgmt", cidr: "172.18.0.0/24", az: "{{ cloud_region }}a" }
-      - { name: "{{ cloud_name }}-outside", cidr: "172.18.1.0/24", az: "{{ cloud_region }}a" }
-      - { name: "{{ cloud_name }}-inside", cidr: "172.18.2.0/24", az: "{{ cloud_region }}a" }
+      - { name: "mgmt.{{ cloud_name }}", cidr: "172.18.0.0/24", az: "{{ cloud_region }}a" }
+      - { name: "outside.{{ cloud_name }}", cidr: "172.18.1.0/24", az: "{{ cloud_region }}a" }
+      - { name: "inside.{{ cloud_name }}", cidr: "172.18.2.0/24", az: "{{ cloud_region }}a" }
     instances:
-      - name: "{{ cloud_name }}-control"
+      - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
         cloud_user: centos
         key_name: "{{ cloud_name }}"
         interfaces:
-          - subnet: "{{ cloud_name }}-mgmt"
+          - subnet: "mgmt.{{ cloud_name }}"
             acl: apphost-acl
             public_ip: true
         tags:
           Owner: "{{ cloud_name }}"
           groups: control
-      - name: "{{ cloud_name }}-host1"
+      - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
         cloud_user: centos
         key_name: "{{ cloud_name }}"
         interfaces:
-          - subnet: "{{ cloud_name }}-inside"
+          - subnet: "inside.{{ cloud_name }}"
             acl: apphost-acl
             public_ip: false
         tags:
           Owner: "{{ cloud_name }}"
           groups: webserver
-      - name: "{{ cloud_name }}-host2"
+      - name: "host2.{{ cloud_name }}"
         size: micro
         image: centos7
         cloud_user: centos
         key_name: "{{ cloud_name }}"
         interfaces:
-          - subnet: "{{ cloud_name }}-inside"
+          - subnet: "inside.{{ cloud_name }}"
             acl: apphost-acl
             public_ip: false
         tags:
           Owner: "{{ cloud_name }}"
           groups: webserver
-      - name: "{{ cloud_name }}-F5"
+      - name: "f5.{{ cloud_name }}"
         size: medium
         image: f5-25-good
         key_name: "{{ cloud_name }}"
         ansible_user: admin
         interfaces:
           - name: mgmt
-            subnet: "{{ cloud_name }}-mgmt"
+            subnet: "mgmt.{{ cloud_name }}"
             acl: f5-acl
             private_ip: 172.18.0.254
             public_ip: true
           - name: eth0
-            subnet: "{{ cloud_name }}-outside"
+            subnet: "outside.{{ cloud_name }}"
             acl: f5-acl
             private_ip: 172.18.1.254
             public_ip: true
           - name: eth1
-            subnet: "{{ cloud_name }}-inside"
+            subnet: "inside.{{ cloud_name }}"
             acl: f5-acl
             private_ip: 172.18.2.254
         tags:
@@ -98,45 +99,18 @@ group_vars:
 cloud_image_map:
   aws:
     us-east-1:
-      rhel7: ami-c998b6b2
       f5-25-good: ami-18ab2462
-      centos7: ami-61bbf104
-    us-east-2:
-      rhel7: ami-0932686c
-    us-west-1:
-      rhel7: ami-66eec506
-    us-west-2:
-      rhel7:  ami-9fa343e7
+      centos7: ami-02e98f78
     ca-central-1:
-      rhel7: ami-9062d0f4
+      f5-25-good: ami-fca61d98
+      centos7: ami-b111aad5
   azure:
-    eastus:
-      rhel7: { offer: CentOS, publisher: OpenLogic, sku: 7.4, version: latest }
-    westus:
-      rhel7: { offer: CentOS, publisher: OpenLogic, sku: 7.4, version: latest }
+    rhel7: { offer: CentOS, publisher: OpenLogic, sku: 7.4, version: latest }
 
 cloud_instance_map:
   aws:
-    us-east-1:
-      micro: t2.micro
-      medium: t2.medium
-      pan-small: m4.xlarge
-    us-east-2:
-      micro: t2.micro
-      medium: t2.medium
-    us-west-1:
-      micro: t2.micro
-      medium: t2.medium
-    us-west-2:
-      micro: t2.micro
-      medium: t2.medium
-    ca-central-1:
-      micro: t2.micro
-      medium: t2.medium
+    micro: t2.micro
+    medium: t2.medium
   azure:
-    eastus:
-      micro: Standard_A0
-      medium: Standard_A2_v2
-    westus:
-      micro: Standard_A0
-      medium: Standard_A2_v2
+    micro: Standard_A0
+    medium: Standard_A2_v2
