@@ -1,6 +1,6 @@
 ---
 demo_name: "{{ opt_name | default('adk-multi1') }}"
-demo_instance: "{{ lookup('env','USER') }}"
+demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
 cloud_name: "{{ demo_name }}.{{ demo_instance }}"
 cloud_provider1: aws
 cloud_region1: "{{ opt_region1 | default('us-east-1') }}"
@@ -54,7 +54,7 @@ vpc_list:
         size: medium
         image: centos7
         key_name: "{{ cloud_name }}"
-        cloud_user: centos
+        ansible_user: centos
         # volume_size: 20
         interfaces:
           - name: eth0
@@ -107,6 +107,7 @@ vpc_list:
       - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
+        ansible_user: centos
         interfaces:
           - name: eth0
             subnet: "inside.vpc2.{{ cloud_name }}"
