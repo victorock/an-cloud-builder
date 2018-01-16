@@ -1,4 +1,6 @@
 ---
+ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
+ansible_ssh_public_key_file: "keys/{{ cloud_name }}_key.pub"
 cloud_image_map:
   aws:
     us-east-1:

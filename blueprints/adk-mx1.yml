@@ -1,13 +1,13 @@
 ---
-demo_name: adk-mx1
-demo_instance: "{{ lookup('env','USER') }}"
+demo_name: "{{ opt_name | default('adk-mx1') }}"
+demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
 cloud_name: "{{ demo_name }}.{{ demo_instance }}"
 cloud_provider1: aws
 cloud_region1: "{{ opt_region1 | default('us-east-1') }}"
 cloud_provider2: "{{ cloud_provider1 }}"
-cloud_region2: "{{ cloud_region1 }}"
+cloud_region2: "{{ opt_region1 | default(cloud_region1) }}"
 cloud_user: ec2-user
-ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
+ansible_ssh_private_key_file: "{{ playbook_dir }}/keys/{{ cloud_name }}"
 
 acl_dict:
   host-acl:
@@ -16,7 +16,7 @@ acl_dict:
     - { src_ip: 0.0.0.0/0, proto: icmp }
   rtr-acl:
     - { src_ip: 0.0.0.0/0, proto: all }
-ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}' }"
+ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', {{ ansible_ssh_private_key_file }} ) }}' }"
 vpc_list:
   - name: "vpc1.{{ cloud_name }}"
     provider: "{{ cloud_provider1 }}"
@@ -27,38 +27,43 @@ vpc_list:
       - host-acl
       - rtr-acl
     networks:
-      - { name: "outside.vpc1.{{ cloud_name }}", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "mgmt.vpc1.{{ cloud_name }}", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "outside.vpc1.{{ cloud_name }}", cidr: "172.17.1.0/24", az: "{{ cloud_region1 }}a" }
     instances:
       - name: "rtr1.{{ cloud_name }}"
         size: xlarge
-        image: mx-byol
+        image: mx-payg
+        key_name: test.scarter
         interfaces:
-          - name: GigabitEthernet1
+          - name: fxp0
+            subnet: "mgmt.vpc1.{{ cloud_name }}"
+            acl: rtr-acl
+            private_ip: 172.17.0.254
+            public_ip: true
+          - name: GigabitEthernet0
             subnet: "outside.vpc1.{{ cloud_name }}"
             acl: rtr-acl
+            private_ip: 172.17.1.254
             public_ip: true
-        key_name: "{{ cloud_name }}"
         tags:
           Owner: student
-          network_os: ios
+          network_os: junos
           groups: network,routers
-        user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
       - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
-        key_name: "{{ cloud_name }}"
         cloud_user: centos
         # volume_size: 20
         interfaces:
           - name: eth0
-            subnet: "outside.vpc1.{{ cloud_name }}"
+            subnet: "mgmt.vpc1.{{ cloud_name }}"
             acl: host-acl
             public_ip: true
         tags:
-          Owner: student
+          Owner: "{{ demo_instance }}"
           groups: control
     routes:
-      - { subnet: "outside.vpc1.{{ cloud_name }}", cidr: "172.18.1.0/24", instance: "rtr1.{{ cloud_name }}" }
+      - { subnet: "outside.vpc1.{{ cloud_name }}", cidr: "172.18.2.0/24", instance: "rtr1.{{ cloud_name }}" }
   - name: "vpc2.{{ cloud_name }}"
     provider: "{{ cloud_provider2 }}"
     region: "{{ cloud_region2 }}"
@@ -74,29 +79,27 @@ vpc_list:
     instances:
       - name: "rtr2.{{ cloud_name }}"
         size: xlarge
-        image: mx-byol
-        key_name: "{{ cloud_name }}"
+        image: mx-payg
         interfaces:
-          - name: GigabitEthernet1
+          - name: fxp0
             subnet: "mgmt.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
             private_ip: 172.18.0.254
-          - name: GigabitEthernet2
+          - name: GigabitEthernet1
             subnet: "outside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
             private_ip: 172.18.1.254
-          - name: GigabitEthernet3
+          - name: GigabitEthernet1
             subnet: "inside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             private_ip: 172.18.2.254
             gateway: yes
         tags:
-          Owner: student
-          network_os: ios
+          Owner: "{{ demo_instance }}"
+          network_os: junos
           groups: network,routers
-        user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
       - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
@@ -104,9 +107,8 @@ vpc_list:
           - name: eth0
             subnet: "inside.vpc2.{{ cloud_name }}"
             acl: host-acl
-        key_name: "{{ cloud_name }}"
         tags:
-          Owner: student
+          Owner: "{{ demo_instance }}"
           groups: hosts
 
 group_vars:
@@ -122,8 +124,9 @@ group_vars:
 cloud_image_map:
   aws:
     us-east-1:
+      mx-payg: ami-cda287b6
       mx-byol: ami-e5a6839e
-      centos7: ami-61bbf104
+      centos7: ami-02e98f78
     ca-central-1:
       mx-byol: ami-1df44a79
       centos7: ami-b111aad5

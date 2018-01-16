@@ -9,11 +9,11 @@
   tags:
     - networks
 
-- include_tasks: "keypairs.yml"
-  vars:
-    cloud_keypair_data: "{{ ssh_keys | default([]) }}"
-  tags:
-    - keypairs
+# - include_tasks: "keypairs.yml"
+#   vars:
+#     cloud_keypair_data: "{{ ssh_keys | default([]) }}"
+#   tags:
+#     - keypairs
 
 - include_tasks: "security-groups.yml"
   vars:

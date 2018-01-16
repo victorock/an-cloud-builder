@@ -29,9 +29,9 @@
         - "{{ inventory_root }}/{{ cloud_name }}/host_vars"
         - "{{ inventory_root }}/{{ cloud_name }}/group_vars"
 
-    - name: Create the inventory file on the control node(s)
+    - name: Create the inventory file on the local node
       template:
-        src: "{{ playbook_dir }}/templates/inventory.j2"
+        src: "{{ playbook_dir }}/templates/local-inventory.j2"
         dest: "{{ inventory_root }}/{{ cloud_name }}/hosts"
 
 - name: Create vars files
@@ -51,7 +51,7 @@
 
     - name: Create the interfaces file for {{ inventory_hostname }}
       template:
-        src: "{{ playbook_dir }}/templates/interfaces.j2"
+        src: "{{ playbook_dir }}/templates/local-interfaces.j2"
         dest: "{{ inventory_root }}/{{ cloud_name }}/host_vars/{{ inventory_hostname }}/interfaces.yml"
       delegate_to: localhost
       when: interfaces is defined

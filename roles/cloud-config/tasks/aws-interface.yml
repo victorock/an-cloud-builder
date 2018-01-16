@@ -1,34 +1,35 @@
 ---
-- name: Get the subnet ID for subnet {{ cloud_network_item.name }}
-  ec2_vpc_subnet_facts:
-    aws_access_key: "{{ aws_access_key | default(omit) }}"
-    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-    region: "{{ cloud_vpc_data.region }}"
-    filters:
-      vpc-id: "{{ vpc_id }}"
-      "tag:Name": "{{ cloud_interface_data.subnet }}"
-  register: subnet_facts
+- debug: var=existing_interface_list
 
-- name: Set Subnet ID
-  set_fact:
-    subnet_id: "{{ subnet_facts.subnets[0].id }}"
-  failed_when: subnet_facts.subnets[0] is not defined
-
-- name: Create interface {{ cloud_interface_index }} for instance {{ cloud_instance_item.name }} ID {{ instance_facts.instance_id }} in subnet {{ cloud_interface_data.subnet }}
+- name: Create interface {{ cloud_interface_index }} for instance {{ cloud_instance_item.name }} in subnet {{ cloud_interface_data.subnet }}
   ec2_eni:
     aws_access_key: "{{ aws_access_key | default(omit) }}"
     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-    instance_id: "{{ instance_facts.instance_id }}"
-    attached: True
+    # eni_id: "{{ existing_eni_list[cloud_interface_index].network_interface_id | default(omit) }}"
+    # instance_id: "{{ instance_facts.instance_id }}"
+    # attached: True
     region: "{{ cloud_vpc_data.region }}"
-    device_index: "{{ cloud_interface_index }}"
-    description: "{{ cloud_interface_data.description | default(omit) }}"
+    # device_index: "{{ cloud_interface_index }}"
+    description: "{{ cloud_instance_item.name }}.{{cloud_interface_data.name }}"
     private_ip_address: "{{ cloud_interface_data.private_ip | default(omit) }}"
-    subnet_id: "{{ subnet_id }}"
+    subnet_id: "{{ subnet_map[cloud_interface_data.subnet] }}"
     state: present
-    delete_on_termination: True
     security_groups: "{{ cloud_interface_data.acl | default(omit) }}"
   register: interface_facts
+
+- name: Add interface to cloud_interface_list
+  set_fact:
+    cloud_interface_list: "{{ cloud_interface_list|default([]) + [interface_facts.interface.id] }}"
+
+- name: Set delete_on_termination for interface {{ interface_facts.interface.id }}
+  ec2_eni:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    eni_id: "{{ interface_facts.interface.id }}"
+    region: "{{ cloud_vpc_data.region }}"
+    subnet_id: "{{ subnet_map[cloud_interface_data.subnet] }}"
+    delete_on_termination: true
+    state: present
 
 - name: Associate a public IP with interface {{ interface_facts.interface.id }} index {{ cloud_interface_index }}
   ec2_eip:
@@ -37,6 +38,7 @@
     in_vpc: yes
     ip: "{{ cloud_interface_data.public_ip if cloud_interface_data.public_ip | ipaddr else omit}}"
     release_on_disassociation: yes
+    reuse_existing_ip_allowed: yes
   when: cloud_interface_data.public_ip is defined
 
 - block:
@@ -44,15 +46,14 @@
       ec2_eni:
         aws_access_key: "{{ aws_access_key | default(omit) }}"
         aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-        instance_id: "{{ instance_facts.instance_id }}"
+        # instance_id: "{{ instance_facts.instance_id }}"
         eni_id: "{{ interface_facts.interface.id }}"
         region: "{{ cloud_vpc_data.region }}"
-        subnet_id: "{{ subnet_id }}"
+        subnet_id: "{{ subnet_map[cloud_interface_data.subnet] }}"
         source_dest_check: false
         state: present
-        delete_on_termination: true
 
-    - name: Set up default route for subnet {{ cloud_network_item.name }} to instance {{ cloud_instance_item.name }}
+    - name: Set up default route for subnet {{ cloud_network_item.name }} to interface {{ interface_facts.interface.id }}
       ec2_vpc_route_table:
         aws_access_key: "{{ aws_access_key | default(omit) }}"
         aws_secret_key: "{{ aws_secret_key | default(omit) }}"
@@ -62,7 +63,7 @@
         tags:
           Name: "{{ cloud_interface_data.subnet }}"
         subnets:
-          - "{{ subnet_id }}"
+          - "{{ subnet_map[cloud_interface_data.subnet] }}"
         routes:
           - dest: 0.0.0.0/0
             interface_id: "{{ interface_facts.interface.id }}"

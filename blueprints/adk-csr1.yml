@@ -123,7 +123,7 @@ cloud_image_map:
   aws:
     us-east-1:
       csr-byol: ami-bcbfb9c7
-      centos7: ami-61bbf104
+      centos7: ami-02e98f78
       rhel7: ami-c998b6b2
     us-east-2:
       csr-byol: ami-541e3931

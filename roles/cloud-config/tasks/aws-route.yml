@@ -3,8 +3,6 @@
   set_fact:
     instance_id: "{{ cloud_instance_map[cloud_route_item.instance] }}"
 
-- debug: var=instance_id
-
 - name: Find interface for instance {{ cloud_route_item.instance }} on subnet {{ subnet_map[cloud_route_item.subnet] }}
   ec2_eni_facts:
     region: "{{ cloud_vpc_data.region }}"
@@ -12,8 +10,6 @@
       attachment.instance-id: "{{ instance_id }}"
       subnet-id: "{{ subnet_map[cloud_route_item.subnet] }}"
   register: eni_facts
-
-- debug: var=eni_facts
 
 - name: Disable Source/Dest check on instance {{ cloud_route_item.instance }}
   ec2_eni:
@@ -26,8 +22,6 @@
     source_dest_check: false
     state: present
     delete_on_termination: true
-
-- debug: var=subnet_map[cloud_route_item.subnet]
 
 - name: Route {{ cloud_route_item.cidr }} for subnet {{ cloud_route_item.subnet }} to instance {{ cloud_route_item.instance }}
   ec2_vpc_route_table:
@@ -44,5 +38,3 @@
       - dest: "{{ cloud_route_item.cidr }}"
         interface_id: "{{ eni_facts.network_interfaces[0].network_interface_id }}"
   register: private_route_table
-
-- debug: var=private_route_table

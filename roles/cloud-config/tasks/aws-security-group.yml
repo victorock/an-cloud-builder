@@ -14,9 +14,13 @@
     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
     name: "{{ cloud_security_group_name }}"
     region: "{{ cloud_vpc_data.region }}"
-    description: "{{ cloud_security_group_name }}"
+    description: "{{ cloud_security_group_name }}.{{ cloud_name }}"
     purge_rules: yes
     state: present
     vpc_id: "{{ vpc_id }}"
     rules: "{{ security_group_rule_list }}"
   register: security_group_result
+
+- name: Create Security Group mapping
+  set_fact:
+    security_group_map: "{{ security_group_map|default({}) | combine( {cloud_security_group_name: security_group_result.group_id} ) }}"

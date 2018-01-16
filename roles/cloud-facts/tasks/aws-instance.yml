@@ -20,7 +20,7 @@
   add_host:
     hostname: "{{ instance_facts_item.tags.Name }}"
     ansible_host: "{{ instance_ip_address }}"
-    ansible_user: "{{ cloud_instance_item.cloud_user | default(cloud_user) }}"
+    ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
     groups: "{{ instance_facts_item.tags.groups | default(omit) }}"
     ansible_network_os: "{{ instance_facts_item.tags.network_os | default(omit) }}"
     private_ip_address: "{{ instance_facts_item.private_ip_address }}"

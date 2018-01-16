@@ -4,22 +4,5 @@
   gather_facts: no
 
   tasks:
-    - name: Enable the interfaces
-      net_interface:
-        name: "{{ item.key }}"
-        enabled: True
-      when: item.value.private_ip_address | ipaddr
-      with_dict: "{{ interfaces }}"
-
-    - name: Add interfaces to the VRF
-      net_vrf:
-        name: "{{ item.name }}"
-        interfaces: "{{ item.interfaces }}"
-      with_items: "{{ vrf_list | default([]) }}"
-
-    - name: Set Interface IP
-      net_l3_interface:
-        name: "{{ item.key }}"
-        ipv4: "{{ item.value.private_ip_address }}/24"
-      when: item.value.private_ip_address | ipaddr
-      with_dict: "{{ interfaces }}"
+    - include_role:
+        name: network-interfaces

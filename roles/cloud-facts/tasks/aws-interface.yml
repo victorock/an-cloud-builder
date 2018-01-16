@@ -17,8 +17,9 @@
   set_fact:
     interface_item:
       name: "{{ cloud_interface_item.1.name | default(omit) }}"
-      private_ip_cidr: "{{ cloud_interface_item.1.private_ip_cidr | default('') }}"
       private_ip_address: "{{ interface_facts.private_ip_address }}"
+      private_dns_name: "{{ interface_facts.private_dns_name }}"
+      private_ip_cidr: "{{ interface_facts.private_ip_address }}/{{ cloud_subnet_facts[cloud_interface_item.1.subnet].cidr_block | ipaddr('prefix') }}"
       public_dns_name: "{{ interface_facts.association.public_dns_name if interface_facts.association is defined else '' }}"
       public_ip_address: "{{ interface_facts.association.public_ip if interface_facts.association is defined else '' }}"
   register: interface_facts

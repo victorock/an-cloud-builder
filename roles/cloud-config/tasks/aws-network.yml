@@ -13,6 +13,10 @@
       tenant: "{{ cloud_vpc_data.project }}"
   register: subnet_result
 
+- name: Create Subnet Mapping
+  set_fact:
+    subnet_map: "{{ subnet_map|default({}) | combine( {cloud_network_item.name: subnet_result.subnet.id} ) }}"
+
 - name: Create route table for subnet {{ cloud_network_item.name }}
   ec2_vpc_route_table:
     aws_access_key: "{{ aws_access_key | default(omit) }}"

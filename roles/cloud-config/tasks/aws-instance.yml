@@ -3,6 +3,14 @@
     cloud_instance_image: "{{ cloud_instance_item.image }}"
     cloud_instance_size: "{{ cloud_instance_item.size }}"
 
+- set_fact:
+    existing_instance_facts: "{{ existing_instance_map[cloud_instance_item.name] | default({})}}"
+  when: existing_instance_map is defined
+
+- set_fact:
+    existing_interface_list: "{{ existing_instance_facts.interfaces | default([])}}"
+  when: existing_instance_facts is defined
+
 - block:
     - block:
         - name: Look for the Cloud Provider specific instance size
@@ -46,11 +54,19 @@
   when: cloud_instance_item.volume_size is defined
 
 
+- include_tasks: "aws-interface.yml"
+  vars:
+    cloud_interface_data: "{{ cloud_interface_item.1 }}"
+    cloud_interface_index: "{{ cloud_interface_item.0 }}"
+  with_indexed_items: "{{ cloud_instance_item.interfaces }}"
+  loop_control:
+    loop_var: cloud_interface_item
+
 - name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
   ec2:
     aws_access_key: "{{ aws_access_key | default(omit) }}"
     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-    key_name: "{{ cloud_instance_item.key_name }}"
+    key_name: "{{ cloud_instance_item.key_name | default(cloud_name) }}"
     region: "{{ cloud_vpc_data.region }}"
     instance_type: "{{ cloud_instance_size }}"
     instance_tags:
@@ -58,17 +74,22 @@
       Environment: "{{ cloud_vpc_data.project }}"
       Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
     image: "{{ cloud_instance_image }}"
+    network_interfaces: "{{ cloud_interface_list }}"
     volumes: "{{ volume_list | default([]) }}"
-    group_id: "{{ security_group_map[cloud_instance_item.interfaces[0].acl] }}"
+    # group_id: "{{ security_group_map[cloud_instance_item.interfaces[0].acl] }}"
     exact_count: "{{ cloud_instance_item.count | default(1) if cloud_state == 'present' else '0' }}"
     count_tag:
       - Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
     wait: yes
-    vpc_subnet_id: "{{ subnet_map[cloud_instance_item.interfaces[0].subnet] }}"
-    private_ip: "{{ cloud_instance_item.interfaces[0].private_ip | ipaddr('address') if cloud_instance_item.interfaces[0].private_ip is defined else omit }}"
-    assign_public_ip: "{{ cloud_instance_item.interfaces[0].public_ip | default(omit) }}"
+    # vpc_subnet_id: "{{ subnet_map[cloud_instance_item.interfaces[0].subnet] }}"
+    # private_ip: "{{ cloud_instance_item.interfaces[0].private_ip | ipaddr('address') if cloud_instance_item.interfaces[0].private_ip is defined else omit }}"
+    # assign_public_ip: "{{ cloud_instance_item.interfaces[0].public_ip | default(omit) }}"
     user_data: "{{ cloud_instance_item.user_data | default(omit) }}"
   register: instance_results
+
+- name: Add interface to cloud_interface_list
+  set_fact:
+    cloud_interface_list: []
 
 - name: Get the instance facts
   ec2_instance_facts:
@@ -88,15 +109,6 @@
     state: present
     tags: "{{ cloud_instance_item.tags }}"
   when: (cloud_instance_item.tags is defined) and (instance_facts is defined)
-
-- include_tasks: "aws-interface.yml"
-  vars:
-    cloud_interface_data: "{{ cloud_interface_item.1 }}"
-    cloud_interface_index: "{{ cloud_interface_item.0 }}"
-  with_indexed_items: "{{ cloud_instance_item.interfaces }}"
-  when: instance_facts.network_interfaces[cloud_interface_item.0] is not defined
-  loop_control:
-    loop_var: cloud_interface_item
 
 - name: Set the IP address for the instance
   set_fact:
