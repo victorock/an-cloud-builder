@@ -18,7 +18,7 @@
   hosts: control
   become: yes
   vars:
-    demo_kit_root: '/var/lib/aws/projects/an-demo-kit'
+    demo_kit_root: '/var/lib/awx/projects/an-demo-kit'
   tasks:
     # - name: Update all packages
     #   yum:
@@ -109,6 +109,11 @@
       with_items: "{{ groups.all }}"
       become: yes
 
+    - name: Make sure that AWX projects directory is accessible
+      file:
+        path: "/var/lib/awx/projects"
+        state: directory
+        mode: 0755
 
     - name: Install the an-demo-kit
       git:
@@ -171,6 +176,7 @@
           host_key_checking = False
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
+
 
   handlers:
     - name: Restart sshd

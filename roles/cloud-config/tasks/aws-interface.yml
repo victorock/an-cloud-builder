@@ -21,16 +21,6 @@
   set_fact:
     cloud_interface_list: "{{ cloud_interface_list|default([]) + [interface_facts.interface.id] }}"
 
-- name: Set delete_on_termination for interface {{ interface_facts.interface.id }}
-  ec2_eni:
-    aws_access_key: "{{ aws_access_key | default(omit) }}"
-    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-    eni_id: "{{ interface_facts.interface.id }}"
-    region: "{{ cloud_vpc_data.region }}"
-    subnet_id: "{{ subnet_map[cloud_interface_data.subnet] }}"
-    delete_on_termination: true
-    state: present
-
 - name: Associate a public IP with interface {{ interface_facts.interface.id }} index {{ cloud_interface_index }}
   ec2_eip:
     region: "{{ cloud_vpc_data.region }}"

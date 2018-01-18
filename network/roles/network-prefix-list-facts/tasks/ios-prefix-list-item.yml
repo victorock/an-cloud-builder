@@ -4,9 +4,8 @@
 - set_fact:
     prefix_list_name: "{{ prefix_list_item | regex_search('prefix-list ([^ ]+)','\\1') }}"
     prefix_list_cidr: "{{ prefix_list_item | regex_search('permit ([^ ]+)','\\1') }}"
-    prefix_list_le: "{{ prefix_list_item | regex_search('le ([^ ]+)','\\1') }}"
+
 # - debug: msg="{{ prefix_list_name }} {{ prefix_list_seq }} {{ prefix_list_cidr[0] }}"
 
-- set_fact:
-    found_prefix_list: "{{ prefix_list_name[0] }}"
-  when: find_prefix_cidr | ipaddr(prefix_list_cidr[0])
+- debug: msg="{{ test_cidr }} is included in {{ prefix_list_cidr[0] }}, prefix list {{ prefix_list_name[0] }}"
+  when: test_cidr | ipaddr(prefix_list_cidr[0])

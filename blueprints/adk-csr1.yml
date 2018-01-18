@@ -107,7 +107,7 @@ vpc_list:
           network_os: ios
           groups: network,routers
         user_data: "{{ lookup('file', 'user-data/cisco-csr') }}"
-      - name: "host2.{{ cloud_name }}"
+      - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
         ansible_user: centos
@@ -128,8 +128,14 @@ group_vars:
     name_servers:
       - 8.8.8.8
       - 8.8.4.4
-    tunnels:
-      - { index: 0, src_host: "rtr1.{{ cloud_name }}", src_ip_addr: "10.255.0.1/30", dst_host: "rtr2.{{ cloud_name }}", dst_ip_addr: "10.255.0.2/30" }
+  control_nodes:
+    topo_checks:
+      - {src: 'control', dst: 'rtr1', proto: 'icmp'}
+      - {src: 'control', dst: 'rtr2', proto: 'icmp'}
+      - {src: 'rtr2', dst: 'host1', proto: 'icmp'}
+  routers:
+    network_tunnel_list:
+      - { index: 0, src_host: "rtr1", src_ip_addr: "10.255.0.1/30", dst_host: "rtr2", dst_ip_addr: "10.255.0.2/30" }
 
 cloud_image_map:
   aws:

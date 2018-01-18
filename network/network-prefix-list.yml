@@ -9,7 +9,7 @@
     - include_role:
         name: find-prefix-list
       vars:
-        find_prefix_list: "{{ prefix_list }}"
+        find_prefix_cidr: "{{ prefix_list }}"
 
     - debug: msg="Prefix list {{ prefix_list }} found in {{ found_prefix_list }}"
       when: found_prefix_list != ''
