@@ -1,0 +1,12 @@
+---
+- hosts: all
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - include_role:
+        name: net-version
+      vars:
+        net_version_list:
+          ios: 15.3(3)S5
+          nxos: 7.0(3)I2(2d)

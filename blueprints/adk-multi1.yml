@@ -65,7 +65,7 @@ vpc_list:
           Owner: student
           groups: control
     routes:
-      - { subnet: "outside.vpc1.{{ cloud_name }}", cidr: "172.18.1.0/24", instance: "rtr1.{{ cloud_name }}" }
+      - { subnet: "outside.vpc1.{{ cloud_name }}", cidr: "172.18.2.0/24", instance: "rtr1.{{ cloud_name }}" }
   - name: "vpc2.{{ cloud_name }}"
     provider: "{{ cloud_provider2 }}"
     region: "{{ cloud_region2 }}"
@@ -81,8 +81,8 @@ vpc_list:
     instances:
       - name: "rtr2.{{ cloud_name }}"
         size: xlarge
-        image: srx-payg
-        ansible_user: root
+        image: mx-byol
+        ansible_user: jnpr
         interfaces:
           - name: fxp0
             subnet: "mgmt.vpc2.{{ cloud_name }}"
@@ -103,7 +103,7 @@ vpc_list:
           Owner: student
           network_os: junos
           groups: network,routers
-        user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
+        user_data: "{{ lookup('file', 'user-data/juniper-mx') }}"
       - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
@@ -131,6 +131,7 @@ cloud_image_map:
   aws:
     us-east-1:
       srx-payg: ami-ddb6f3a7
+      mx-byol: ami-e5a6839e
       csr-byol: ami-bcbfb9c7
       centos7: ami-02e98f78
 

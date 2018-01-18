@@ -1,8 +1,8 @@
 ---
-# - name: Enable netconf service on port 830
-#   junos_netconf:
-#     listens_on: 830
-#     state: present
+- name: Enable netconf service on port 830
+  junos_netconf:
+    listens_on: 830
+    state: present
 
 # - name: Configure root password and enable netconf
 #   junos_config:

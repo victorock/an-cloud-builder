@@ -16,12 +16,40 @@
 
 - name: Create vars files
   hosts: control
+  become: yes
+  vars:
+    demo_kit_root: '/var/lib/aws/projects/an-demo-kit'
   tasks:
     # - name: Update all packages
     #   yum:
     #     name: '*'
     #     state: latest
     #   become: yes
+
+    # - name: Install Ansible
+    #   yum:
+    #     name: "https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.4.2.0-1.el7.ans.noarch.rpm"
+    #   become: yes
+
+    - include_role:
+        name: ansible-tower
+      vars:
+        ansible_tower_version: 3.2.2
+      become: yes
+
+    - name: Allow password authentication
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PasswordAuthentication"
+                  line="PasswordAuthentication yes"
+                  state=present
+      become: yes
+      notify: Restart sshd
+
+    - name: Set the user password
+      user:
+        name: centos
+        password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
+      become: yes
 
     - name: Install EPEL repository
       yum:
@@ -44,10 +72,10 @@
 
       become: yes
 
-    - name: Install Ansible
-      pip:
-        name: 'git+git://github.com/ansible/ansible.git'
-      become: yes
+    # - name: Install Ansible
+    #   pip:
+    #     name: 'git+git://github.com/ansible/ansible.git'
+    #   become: yes
 
     - name: Install PIP packages
       pip:
@@ -81,13 +109,12 @@
       with_items: "{{ groups.all }}"
       become: yes
 
-    - set_fact:
-        demo_kit_root: '~{{ ansible_ssh_user }}/an-demo-kit'
 
     - name: Install the an-demo-kit
       git:
         repo: https://github.com/ismc/an-demo-kit.git
         dest: "{{ demo_kit_root }}"
+        force: yes
 
     - name: Create the inventory directory
       file:
@@ -144,3 +171,10 @@
           host_key_checking = False
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
+
+  handlers:
+    - name: Restart sshd
+      systemd:
+        name: sshd
+        state: restarted
+      become: yes

@@ -1,6 +1,6 @@
 ---
-demo_name: adk-csr1
-demo_instance: "{{ lookup('env','USER') }}"
+demo_name: "{{ opt_name | default('adk-csr1') }}"
+demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
 cloud_name: "{{ demo_name }}.{{ demo_instance }}"
 cloud_provider1: aws
 cloud_region1: "{{ opt_region1 | default('us-east-1') }}"
@@ -16,7 +16,6 @@ acl_dict:
     - { src_ip: 0.0.0.0/0, proto: icmp }
   rtr-acl:
     - { src_ip: 0.0.0.0/0, proto: all }
-ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}' }"
 vpc_list:
   - name: "vpc1.{{ cloud_name }}"
     provider: "{{ cloud_provider1 }}"
@@ -27,27 +26,39 @@ vpc_list:
       - host-acl
       - rtr-acl
     networks:
-      - { name: "outside.vpc1.{{ cloud_name }}", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "mgmt.vpc1.{{ cloud_name }}", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "outside.vpc1.{{ cloud_name }}", cidr: "172.17.1.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "inside.vpc1.{{ cloud_name }}", cidr: "172.17.2.0/24", az: "{{ cloud_region1 }}a" }
     instances:
       - name: "rtr1.{{ cloud_name }}"
         size: medium
         image: csr-byol
         interfaces:
           - name: GigabitEthernet1
+            subnet: "mgmt.vpc1.{{ cloud_name }}"
+            acl: rtr-acl
+            public_ip: true
+            private_ip: 172.17.0.254
+          - name: GigabitEthernet2
             subnet: "outside.vpc1.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
-        key_name: "{{ cloud_name }}"
+            private_ip: 172.17.1.254
+          - name: GigabitEthernet3
+            subnet: "inside.vpc1.{{ cloud_name }}"
+            acl: rtr-acl
+            private_ip: 172.17.2.254
+            gateway: yes
         tags:
           Owner: student
           network_os: ios
           groups: network,routers
-        user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
+        user_data: "{{ lookup('file', 'user-data/cisco-csr') }}"
       - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
         key_name: "{{ cloud_name }}"
-        cloud_user: centos
+        ansible_user: centos
         # volume_size: 20
         interfaces:
           - name: eth0
@@ -75,7 +86,6 @@ vpc_list:
       - name: "rtr2.{{ cloud_name }}"
         size: medium
         image: csr-byol
-        key_name: "{{ cloud_name }}"
         interfaces:
           - name: GigabitEthernet1
             subnet: "mgmt.vpc2.{{ cloud_name }}"
@@ -96,15 +106,15 @@ vpc_list:
           Owner: student
           network_os: ios
           groups: network,routers
-        user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
-      - name: "host1.{{ cloud_name }}"
+        user_data: "{{ lookup('file', 'user-data/cisco-csr') }}"
+      - name: "host2.{{ cloud_name }}"
         size: micro
         image: centos7
+        ansible_user: centos
         interfaces:
           - name: eth0
             subnet: "inside.vpc2.{{ cloud_name }}"
             acl: host-acl
-        key_name: "{{ cloud_name }}"
         tags:
           Owner: student
           groups: hosts
@@ -118,6 +128,8 @@ group_vars:
     name_servers:
       - 8.8.8.8
       - 8.8.4.4
+    tunnels:
+      - { index: 0, src_host: "rtr1.{{ cloud_name }}", src_ip_addr: "10.255.0.1/30", dst_host: "rtr2.{{ cloud_name }}", dst_ip_addr: "10.255.0.2/30" }
 
 cloud_image_map:
   aws:

@@ -40,4 +40,19 @@
       wait: yes
       state: absent
     when: instance_id_list
+
+  - name: Get the list of interfaces in VPC {{ vpc_id }}
+    ec2_eni_facts:
+      region: "{{ cloud_vpc_data.region }}"
+      filters:
+        vpc-id: "{{ vpc_id }}"
+    register: eni_results
+
+  - name: Delete all interfaces in VPC {{ vpc_id }}
+    ec2_eni:
+      region: "{{ cloud_vpc_data.region }}"
+      eni_id: "{{ item.network_interface_id }}"
+      state: absent
+    with_items: "{{ eni_results.network_interfaces }}"
+
   when: vpc_net_facts.vpcs
