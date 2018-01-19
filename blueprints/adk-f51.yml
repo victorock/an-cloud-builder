@@ -14,7 +14,6 @@ acl_dict:
     - { src_ip: 0.0.0.0/0, proto: icmp }
   f5-acl:
     - { src_ip: 0.0.0.0/0, proto: all }
-ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}' }"
 vpc_list:
   - name: "vpc.{{ cloud_name }}"
     provider: "{{ cloud_provider }}"
@@ -32,7 +31,7 @@ vpc_list:
       - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
-        cloud_user: centos
+        ansible_user: centos
         key_name: "{{ cloud_name }}"
         interfaces:
           - name: eth0

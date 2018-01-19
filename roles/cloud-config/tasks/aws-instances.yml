@@ -9,7 +9,7 @@
 
 - name: Create a dict of instances for project {{ cloud_vpc_data.project }}
   set_fact:
-    existing_instance_map: "{{ existing_instance_map | default({}) | combine({ instance_facts_item.tags.Name: instance_facts_item }) }}"
+    cloud_instance_map: "{{ cloud_instance_map | default({}) | combine({ instance_facts_item.tags.Name: instance_facts_item }) }}"
   with_items: "{{ instance_facts.instances }}"
   loop_control:
     loop_var: instance_facts_item

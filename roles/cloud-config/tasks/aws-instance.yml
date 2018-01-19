@@ -1,123 +1,102 @@
 ---
-- set_fact:
-    cloud_instance_image: "{{ cloud_instance_item.image }}"
-    cloud_instance_size: "{{ cloud_instance_item.size }}"
-
-- set_fact:
-    existing_instance_facts: "{{ existing_instance_map[cloud_instance_item.name] | default({})}}"
-  when: existing_instance_map is defined
-
-- set_fact:
-    existing_interface_list: "{{ existing_instance_facts.interfaces | default([])}}"
-  when: existing_instance_facts is defined
-
 - block:
-    - block:
-        - name: Look for the Cloud Provider specific instance size
-          set_fact:
-            cloud_instance_size: "{{ cloud_size_map[cloud_vpc_data.provider][cloud_instance_item.size] }}"
-          when: cloud_size_map[cloud_vpc_data.provider][cloud_instance_item.size] is defined
-        - block:
-            - name: Look for the Region specific instance size
-              set_fact:
-                cloud_instance_size: "{{ cloud_size_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.size] }}"
-              when: cloud_size_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.size] is defined
-          when:  cloud_size_map[cloud_vpc_data.provider][cloud_vpc_data.region] is defined
-      when: cloud_size_map[cloud_vpc_data.provider] is defined
-  when: cloud_size_map is defined
+  - set_fact:
+      cloud_instance_image: "{{ cloud_instance_item.image }}"
+      cloud_instance_size: "{{ cloud_instance_item.size }}"
+      cloud_interface_list: []
 
-- block:
-    - block:
-        - name: Look for the Cloud Provider specific image
-          set_fact:
-            cloud_instance_image: "{{ cloud_image_map[cloud_vpc_data.provider][cloud_instance_item.image] }}"
-          when: cloud_image_map[cloud_vpc_data.provider][cloud_instance_item.image] is defined
-        - block:
-            - name: Look for the Region specific image
-              set_fact:
-                cloud_instance_image: "{{ cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.image] }}"
-              when: cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.image] is defined
-          when:  cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region] is defined
-      when: cloud_image_map[cloud_vpc_data.provider] is defined
-  when: cloud_image_map is defined
+  - block:
+      - block:
+          - name: Look for the Cloud Provider specific instance size
+            set_fact:
+              cloud_instance_size: "{{ cloud_size_map[cloud_vpc_data.provider][cloud_instance_item.size] }}"
+            when: cloud_size_map[cloud_vpc_data.provider][cloud_instance_item.size] is defined
+          - block:
+              - name: Look for the Region specific instance size
+                set_fact:
+                  cloud_instance_size: "{{ cloud_size_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.size] }}"
+                when: cloud_size_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.size] is defined
+            when:  cloud_size_map[cloud_vpc_data.provider][cloud_vpc_data.region] is defined
+        when: cloud_size_map[cloud_vpc_data.provider] is defined
+    when: cloud_size_map is defined
 
-- block:
-    - set_fact:
-        instance_volume:
-          device_name: "{{ cloud_instance_item.volume_device | default('/dev/sda1') }}"
-          volume_type: "{{ cloud_instance_item.volume_type | default('gp2') }}"
-          volume_size: "{{ cloud_instance_item.volume_size }}"
-          delete_on_termination: true
+  - block:
+      - block:
+          - name: Look for the Cloud Provider specific image
+            set_fact:
+              cloud_instance_image: "{{ cloud_image_map[cloud_vpc_data.provider][cloud_instance_item.image] }}"
+            when: cloud_image_map[cloud_vpc_data.provider][cloud_instance_item.image] is defined
+          - block:
+              - name: Look for the Region specific image
+                set_fact:
+                  cloud_instance_image: "{{ cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.image] }}"
+                when: cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region][cloud_instance_item.image] is defined
+            when:  cloud_image_map[cloud_vpc_data.provider][cloud_vpc_data.region] is defined
+        when: cloud_image_map[cloud_vpc_data.provider] is defined
+    when: cloud_image_map is defined
 
-    - set_fact:
-        volume_list: "{{ [instance_volume] }}"
-  when: cloud_instance_item.volume_size is defined
+  - block:
+      - set_fact:
+          instance_volume:
+            device_name: "{{ cloud_instance_item.volume_device | default('/dev/sda1') }}"
+            volume_type: "{{ cloud_instance_item.volume_type | default('gp2') }}"
+            volume_size: "{{ cloud_instance_item.volume_size }}"
+            delete_on_termination: true
 
+      - set_fact:
+          volume_list: "{{ [instance_volume] }}"
+    when: cloud_instance_item.volume_size is defined
 
-- include_tasks: "aws-interface.yml"
-  vars:
-    cloud_interface_data: "{{ cloud_interface_item.1 }}"
-    cloud_interface_index: "{{ cloud_interface_item.0 }}"
-  with_indexed_items: "{{ cloud_instance_item.interfaces }}"
-  loop_control:
-    loop_var: cloud_interface_item
+  - include_tasks: "aws-interface.yml"
+    vars:
+      cloud_interface_data: "{{ cloud_interface_item.1 }}"
+      cloud_interface_index: "{{ cloud_interface_item.0 }}"
+    with_indexed_items: "{{ cloud_instance_item.interfaces }}"
+    loop_control:
+      loop_var: cloud_interface_item
 
-- name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
-  ec2:
-    aws_access_key: "{{ aws_access_key | default(omit) }}"
-    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-    key_name: "{{ cloud_instance_item.key_name | default(cloud_name) }}"
-    region: "{{ cloud_vpc_data.region }}"
-    instance_type: "{{ cloud_instance_size }}"
-    instance_tags:
-      Name: "{{ cloud_instance_item.name }}"
-      Environment: "{{ cloud_vpc_data.project }}"
-      Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
-    image: "{{ cloud_instance_image }}"
-    network_interfaces: "{{ cloud_interface_list }}"
-    volumes: "{{ volume_list | default([]) }}"
-    # group_id: "{{ security_group_map[cloud_instance_item.interfaces[0].acl] }}"
-    exact_count: "{{ cloud_instance_item.count | default(1) if cloud_state == 'present' else '0' }}"
-    count_tag:
-      - Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
-    wait: yes
-    # vpc_subnet_id: "{{ subnet_map[cloud_instance_item.interfaces[0].subnet] }}"
-    # private_ip: "{{ cloud_instance_item.interfaces[0].private_ip | ipaddr('address') if cloud_instance_item.interfaces[0].private_ip is defined else omit }}"
-    # assign_public_ip: "{{ cloud_instance_item.interfaces[0].public_ip | default(omit) }}"
-    user_data: "{{ cloud_instance_item.user_data | default(omit) }}"
-  register: instance_results
+  - name: Create the default intstance tags
+    set_fact:
+      cloud_instance_tags:
+          Name: "{{ cloud_instance_item.name }}"
+          Environment: "{{ cloud_vpc_data.project }}"
+          Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
 
-- name: Add interface to cloud_interface_list
-  set_fact:
-    cloud_interface_list: []
+  - name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
+    ec2:
+      aws_access_key: "{{ aws_access_key | default(omit) }}"
+      aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+      key_name: "{{ cloud_instance_item.key_name | default(cloud_name) }}"
+      region: "{{ cloud_vpc_data.region }}"
+      instance_type: "{{ cloud_instance_size }}"
+      instance_tags: "{{ cloud_instance_item.tags|default({}) | combine(cloud_instance_tags) }}"
+        # Name: "{{ cloud_instance_item.name }}"
+        # Environment: "{{ cloud_vpc_data.project }}"
+        # Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
+      image: "{{ cloud_instance_image }}"
+      network_interfaces: "{{ cloud_interface_list }}"
+      volumes: "{{ volume_list | default([]) }}"
+      # group_id: "{{ security_group_map[cloud_instance_item.interfaces[0].acl] }}"
+      exact_count: "{{ cloud_instance_item.count | default(1) if cloud_state == 'present' else '0' }}"
+      count_tag:
+        - Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
+      wait: yes
+      # vpc_subnet_id: "{{ subnet_map[cloud_instance_item.interfaces[0].subnet] }}"
+      # private_ip: "{{ cloud_instance_item.interfaces[0].private_ip | ipaddr('address') if cloud_instance_item.interfaces[0].private_ip is defined else omit }}"
+      # assign_public_ip: "{{ cloud_instance_item.interfaces[0].public_ip | default(omit) }}"
+      user_data: "{{ cloud_instance_item.user_data | default(omit) }}"
+    register: instance_results
 
-- name: Get the instance facts
-  ec2_instance_facts:
-    region: "{{ cloud_vpc_data.region }}"
-    instance_ids:
-      - "{{ instance_results.tagged_instances[0].id }}"
-  register: instance_facts_results
+  - debug: var=instance_results
 
-- name: Dereference instance facts
-  set_fact:
-    instance_facts: "{{ instance_facts_results.instances[0]}}"
+  - set_fact:
+      cloud_instance_id: instance_results.tagged_instances[0].id
+    when: instance_results.tagged_instances[0] is defined
 
-- name: Add tags to Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
-  ec2_tag:
-    region: "{{ cloud_vpc_data.region }}"
-    resource: "{{ instance_facts.instance_id }}"
-    state: present
-    tags: "{{ cloud_instance_item.tags }}"
-  when: (cloud_instance_item.tags is defined) and (instance_facts is defined)
-
-- name: Set the IP address for the instance
-  set_fact:
-    instance_ip_address: "{{ instance_facts.public_ip_address | default(instance_facts.private_ip_address, true) }}"
-  when: instance_facts.tagged_instances is defined
-
-- name: Populate instance map
-  set_fact:
-    cloud_instance_map: "{{ cloud_instance_map|default({}) | combine( {cloud_instance_item.name: instance_facts.instance_id} ) }}"
+  - name: Populate instance map
+    set_fact:
+      cloud_instance_map: "{{ cloud_instance_map|default({}) | combine( {cloud_instance_item.name: cloud_instance_id} ) }}"
+  when: cloud_instance_map[cloud_instance_item.name] is not defined
 
 # - name: Get the instance facts
 #   ec2_instance_facts:
@@ -125,3 +104,12 @@
 #     instance_ids:
 #       - "{{ instance_results.tagged_instances[0].id }}"
 #   register: instance_facts_results
+#
+# - name: Dereference instance facts
+#   set_fact:
+#     instance_facts: "{{ instance_facts_results.instances[0]}}"
+#
+# - name: Set the IP address for the instance
+#   set_fact:
+#     instance_ip_address: "{{ instance_facts.public_ip_address | default(instance_facts.private_ip_address, true) }}"
+#   when: instance_facts.tagged_instances is defined
