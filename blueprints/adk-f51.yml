@@ -10,6 +10,7 @@ ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
 acl_dict:
   apphost-acl:
     - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }
+    - { src_ip: 0.0.0.0/0, dst_ports: 80, proto: tcp }
     - { src_ip: 0.0.0.0/0, dst_ports: 443, proto: tcp }
     - { src_ip: 0.0.0.0/0, proto: icmp }
   f5-acl:
@@ -44,7 +45,7 @@ vpc_list:
       - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
-        cloud_user: centos
+        ansible_user: centos
         key_name: "{{ cloud_name }}"
         interfaces:
           - name: eth0
@@ -57,7 +58,7 @@ vpc_list:
       - name: "host2.{{ cloud_name }}"
         size: micro
         image: centos7
-        cloud_user: centos
+        ansible_user: centos
         key_name: "{{ cloud_name }}"
         interfaces:
           - name: eth0

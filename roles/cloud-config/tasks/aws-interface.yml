@@ -29,7 +29,7 @@
     ip: "{{ cloud_interface_data.public_ip if cloud_interface_data.public_ip | ipaddr else omit}}"
     release_on_disassociation: yes
     reuse_existing_ip_allowed: yes
-  when: cloud_interface_data.public_ip is defined
+  when: cloud_interface_data.public_ip|bool
 
 - block:
     - name: Disable Source/Dest check on interface {{ interface_facts.interface.id }}
