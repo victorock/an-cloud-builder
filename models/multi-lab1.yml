@@ -1,0 +1,142 @@
+---
+demo_name: "{{ opt_name | default('adk-multi1') }}"
+demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
+cloud_name: "{{ demo_name }}.{{ demo_instance }}"
+cloud_provider1: aws
+cloud_region1: "{{ opt_region1 | default('us-east-1') }}"
+cloud_provider2: "{{ cloud_provider1 }}"
+cloud_region2: "{{ cloud_region1 }}"
+cloud_user: ec2-user
+ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
+
+cloud_acls:
+  host-acl:
+    - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }
+    - { src_ip: 0.0.0.0/0, dst_ports: 443, proto: tcp }
+    - { src_ip: 0.0.0.0/0, proto: icmp }
+  rtr-acl:
+    - { src_ip: 0.0.0.0/0, proto: all }
+vpc_list:
+  - name: "vpc1.{{ cloud_name }}"
+    provider: "{{ cloud_provider1 }}"
+    region: "{{ cloud_region1 }}"
+    project: "{{ cloud_name }}"
+    cidr: 172.17.0.0/16
+    acl_list:
+      - host-acl
+      - rtr-acl
+    networks:
+      - { name: "mgmt.vpc1.{{ cloud_name }}", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "outside.vpc1.{{ cloud_name }}", cidr: "172.17.1.0/24", az: "{{ cloud_region1 }}a" }
+      - { name: "inside.vpc1.{{ cloud_name }}", cidr: "172.17.2.0/24", az: "{{ cloud_region1 }}a" }
+    instances:
+      - name: "rtr1.{{ cloud_name }}"
+        size: medium
+        image: csr-byol
+        interfaces:
+          - name: GigabitEthernet1
+            subnet: "mgmt.vpc1.{{ cloud_name }}"
+            acl: rtr-acl
+            public_ip: true
+          - name: GigabitEthernet2
+            subnet: "outside.vpc1.{{ cloud_name }}"
+            acl: rtr-acl
+            public_ip: true
+          - name: GigabitEthernet3
+            subnet: "inside.vpc1.{{ cloud_name }}"
+            acl: rtr-acl
+        tags:
+          Owner: student
+          network_os: ios
+          groups: network,routers
+        user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
+      - name: "control.{{ cloud_name }}"
+        size: medium
+        image: centos7
+        key_name: "{{ cloud_name }}"
+        ansible_user: centos
+        # volume_size: 20
+        interfaces:
+          - name: eth0
+            subnet: "outside.vpc1.{{ cloud_name }}"
+            acl: host-acl
+            public_ip: true
+        tags:
+          Owner: student
+          groups: control
+    routes:
+      - { subnet: "outside.vpc1.{{ cloud_name }}", cidr: "172.18.2.0/24", instance: "rtr1.{{ cloud_name }}" }
+  - name: "vpc2.{{ cloud_name }}"
+    provider: "{{ cloud_provider2 }}"
+    region: "{{ cloud_region2 }}"
+    project: "{{ cloud_name }}"
+    cidr: 172.18.0.0/16
+    acl_list:
+      - host-acl
+      - rtr-acl
+    networks:
+      - { name: "mgmt.vpc2.{{ cloud_name }}", cidr: "172.18.0.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "outside.vpc2.{{ cloud_name }}", cidr: "172.18.1.0/24", az: "{{ cloud_region2 }}b" }
+      - { name: "inside.vpc2.{{ cloud_name }}", cidr: "172.18.2.0/24", az: "{{ cloud_region2 }}b" }
+    instances:
+      - name: "rtr2.{{ cloud_name }}"
+        size: xlarge
+        image: mx-byol
+        ansible_user: jnpr
+        interfaces:
+          - name: fxp0
+            subnet: "mgmt.vpc2.{{ cloud_name }}"
+            acl: rtr-acl
+            public_ip: true
+            private_ip: 172.18.0.254
+          - name: ge-0/0/0
+            subnet: "outside.vpc2.{{ cloud_name }}"
+            acl: rtr-acl
+            public_ip: true
+            private_ip: 172.18.1.254
+          - name: ge-0/0/1
+            subnet: "inside.vpc2.{{ cloud_name }}"
+            acl: rtr-acl
+            private_ip: 172.18.2.254
+            gateway: yes
+        tags:
+          Owner: student
+          network_os: junos
+          groups: network,routers
+        user_data: "{{ lookup('file', 'user-data/juniper-mx') }}"
+      - name: "host1.{{ cloud_name }}"
+        size: micro
+        image: centos7
+        ansible_user: centos
+        interfaces:
+          - name: eth0
+            subnet: "inside.vpc2.{{ cloud_name }}"
+            acl: host-acl
+        key_name: "{{ cloud_name }}"
+        tags:
+          Owner: student
+          groups: hosts
+
+group_vars:
+  all:
+    domain_name: localdomain
+    domain_search:
+      - localdomain
+      - example.com
+    name_servers:
+      - 8.8.8.8
+      - 8.8.4.4
+
+cloud_image_map:
+  aws:
+    us-east-1:
+      srx-payg: ami-ddb6f3a7
+      mx-byol: ami-e5a6839e
+      csr-byol: ami-bcbfb9c7
+      centos7: ami-02e98f78
+
+cloud_size_map:
+  aws:
+    micro: t2.micro
+    medium: t2.medium
+    xlarge: m4.xlarge

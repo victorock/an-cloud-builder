@@ -1,5 +1,0 @@
----
-- include: "{{ role_path }}/tasks/aws-interface.yml"
-  with_items: "{{ cloud_interface_data | default([]) }}"
-  loop_control:
-    loop_var: cloud_interface_item

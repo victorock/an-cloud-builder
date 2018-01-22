@@ -1,0 +1,44 @@
+{% import 'azure-jinja2/macros/virtual_machine_extension.json.j2' as virtual_machine_extension %}
+{% import 'azure-jinja2/macros/winrm_fileuris.json.j2' as winrm_fileuris %}
+
+{% set winRMFileUris %}
+  {{ winrm_fileuris.create() }}
+{% endset %}
+
+{#
+   package: winrm_virtual_machine_extension
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/winrm_virtual_machine_extension.json.j2
+
+   macro: create
+   Create a new *WinRM virtual machine extension* (see <virtual_machine_extension>).
+
+   Parameters:
+
+      argument1 - string = "" (optional), argument to pass to the PowerShell script
+
+Example:
+(start code)
+
+{% import 'azure-jinja2/macros/winrm_virtual_machine_extension.json.j2' as winrm_extension %}
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "variables": {
+    "hostDNSNameScriptArgument": "[concat('*.',resourceGroup().location,'.cloudapp.azure.com')]"
+  },
+  "resources" : [
+    {% set winRMExtension %}
+    {{ winrm_extension.create(arg1="variables('hostDNSNameScriptArgument')") }}
+    {% endset %}
+    ...
+  ]
+}
+
+(end)
+
+#}
+
+{% macro create(arg1) %}
+  {{ virtual_machine_extension.create(fileUris = winRMFileUris, PSScriptToExecute='ConfigureWinRM.ps1', argument1=arg1) }}
+{% endmacro %}

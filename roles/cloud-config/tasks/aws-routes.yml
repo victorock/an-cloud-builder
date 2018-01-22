@@ -26,6 +26,9 @@
 #   with_items: "{{ subnet_facts.subnets }}"
 
 - include: "{{ role_path }}/tasks/aws-route.yml"
-  with_items: "{{ cloud_route_data | default([]) }}"
+  with_subelements:
+    - "{{ cloud_network_data | default([]) }}"
+    - routes
+    - skip_missing: yes
   loop_control:
     loop_var: cloud_route_item

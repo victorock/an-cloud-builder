@@ -17,6 +17,7 @@
         user: "{{ network_username }}"
         password: "{{ network_password }}"
         hostname: "{{ interfaces.mgmt.public_dns_name }}"
+      validate_certs: "no"
 
     # - name: Set the DNS settings on the BIG-IP
     #   bigip_device_dns:

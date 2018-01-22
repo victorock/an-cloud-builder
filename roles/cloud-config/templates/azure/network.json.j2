@@ -1,0 +1,31 @@
+{% macro virtualNetworks(
+      name,
+      apiVersion,
+      location,
+      addressPrefix,
+      subnetName,
+      subnetPrefix
+   )
+-%}
+{
+   "type": "Microsoft.Network/virtualNetworks",
+   "apiVersion": "{{ apiVersion }}",
+   "location": "{{ location }}",
+   "name": "{{ name }}",
+   "properties": {
+     "addressSpace": {
+       "addressPrefixes": [
+         "{{ addressPrefix }}"
+       ]
+     },
+     "subnets": [
+        {
+         "name": "{{ subnetName }}",
+         "properties": {
+	    "addressPrefix": "{{ subnetPrefix }}"
+         }
+       }
+     ]
+   }
+}
+{%- endmacro %}

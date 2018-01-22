@@ -15,16 +15,18 @@
       run_once: yes
 
 - name: Create vars files
-  hosts: control
+  hosts: control-hosts
   become: yes
   vars:
     demo_kit_root: '/var/lib/awx/projects/an-demo-kit'
+    lab_username: 'labuser'
+    ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
   tasks:
-    # - name: Update all packages
-    #   yum:
-    #     name: '*'
-    #     state: latest
-    #   become: yes
+    - name: Update all packages
+      yum:
+        name: '*'
+        state: latest
+      become: yes
 
     # - name: Install Ansible
     #   yum:
@@ -45,61 +47,66 @@
       become: yes
       notify: Restart sshd
 
-    - name: Set the user password
-      user:
-        name: centos
+    - user:
+        name: "{{ lab_username }}"
+        comment: "Lab User"
         password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
-      become: yes
+        uid: 2000
+        group: wheel
 
-    - name: Install EPEL repository
+    # - name: Install EPEL repository
+    #   yum:
+    #     name: epel-release
+    #     state: present
+    #   become: yes
+    #
+
+    - name: Remove out of date Yum packages
       yum:
-        name: epel-release
-        state: present
-      become: yes
+        name: httpd
+        state: absent
+      with_items:
+        - python-requests
+        - pyOpenSSL
 
     - name: Install YUM packages
       yum:
         name: "{{ item }}"
         state: latest
       with_items:
-        - python-pip
-        - python-devel
-        - python-netaddr
-        - openssl-devel
-        - sudo
-        - git
-        - gcc
-
-      become: yes
-
-    # - name: Install Ansible
-    #   pip:
-    #     name: 'git+git://github.com/ansible/ansible.git'
-    #   become: yes
+        - python2-pip
 
     - name: Install PIP packages
       pip:
         name: "{{ item }}"
         state: latest
       with_items:
-        #- ansible
-        - paramiko
-        - PyYAML
-        - Jinja2
-        - httplib2
-        - six
-        #- shade
-        - jxmlease
-        - ncclient
-        - pexpect
+        - "setuptools>=1.4"
         - f5-sdk
         - bigsuds
         - pan-python
         - pandevice
+        - pexpect
         - requests
         - pyopenssl
-        #- junos-eznc
-      become: yes
+        - netaddr
+        - ansible-tower-cli
+    #     #- ansible
+    #     - paramiko
+    #     - PyYAML
+    #     - Jinja2
+    #     - httplib2
+    #     - six
+    #     #- shade
+    #     - jxmlease
+    #     - ncclient
+    #     - boto
+    #     - boto3
+    #     - awscli
+    #     - ansible-tower-cli
+
+    #     #- junos-eznc
+    #   become: yes
 
     - name: Add IP addresses to /etc/hosts
       lineinfile:
@@ -109,9 +116,9 @@
       with_items: "{{ groups.all }}"
       become: yes
 
-    - name: Make sure that AWX projects directory is accessible
+    - name: Make the projects directory rx
       file:
-        path: "/var/lib/awx/projects"
+        path: /var/lib/awx/projects
         state: directory
         mode: 0755
 
@@ -125,9 +132,11 @@
       file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ ansible_ssh_user }}"
+        owner: "{{ lab_username }}"
         mode: 0755
+        recurse: yes
       with_items:
+        - "{{ demo_kit_root }}"
         - "{{ demo_kit_root }}/inventory"
         - "{{ demo_kit_root }}/inventory/host_vars"
         - "{{ demo_kit_root }}/inventory/group_vars"
@@ -136,11 +145,13 @@
       template:
         src: "{{ playbook_dir }}/templates/control-inventory.j2"
         dest: "{{ demo_kit_root }}/inventory/hosts"
+        owner: "{{ lab_username }}"
 
     - name: Create the group_vars files
       copy:
         dest: "{{ demo_kit_root }}/inventory/group_vars/{{ item.key }}.yml"
         content: "{{ item.value | to_nice_yaml }}"
+        owner: "{{ lab_username }}"
       with_dict: "{{ group_vars }}"
       when: group_vars is defined
 
@@ -148,7 +159,7 @@
       file:
         path: "{{ demo_kit_root }}/inventory/host_vars/{{ item.split('.')[0] }}"
         state: directory
-        owner: "{{ ansible_ssh_user }}"
+        owner: "{{ lab_username }}"
         mode: 0755
       when: hostvars[item].interfaces is defined
       with_items: "{{ groups.network }}"
@@ -157,23 +168,44 @@
       template:
         src: "{{ playbook_dir }}/templates/interfaces.j2"
         dest: "{{ demo_kit_root }}/inventory/host_vars/{{ item.split('.')[0] }}/interfaces.yml"
+        owner: "{{ lab_username }}"
       when: hostvars[item].interfaces is defined
       with_items: "{{ groups.network }}"
+
+    - name: Create the .ssh directory
+      file:
+        path: "~{{ lab_username }}/.ssh"
+        state: directory
+        owner: "{{ lab_username }}"
+        mode: 0700
+        recurse: yes
 
     - name: Copy the ssh key
       copy:
         src: "{{ ansible_ssh_private_key_file }}"
-        dest: "~{{ ansible_ssh_user }}/.ssh/id_rsa"
-        owner: "{{ ansible_ssh_user }}"
+        dest: "~{{ lab_username }}/.ssh/id_rsa"
+        owner: "{{ lab_username }}"
         mode: 0600
 
-    - name: create the .ansible.cfg
+    - name: create the ~/.ansible.cfg
       blockinfile:
-        path: "~{{ ansible_ssh_user }}/.ansible.cfg"
+        path: "~{{ lab_username }}/.ansible.cfg"
         create: yes
+        owner: "{{ lab_username }}"
         block: |
           [defaults]
           host_key_checking = False
+
+
+    - name: create the ~/.tower.cfg
+      blockinfile:
+        path: "~{{ lab_username }}/.ansible.cfg"
+        create: yes
+        owner: "{{ lab_username }}"
+        block: |
+          host: "{{ inventory_hostname }}"
+          username: admin
+          password: "{{ ansible_tower_admin_pass }}"
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
 

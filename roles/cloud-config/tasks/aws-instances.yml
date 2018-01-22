@@ -1,4 +1,8 @@
 ---
+- set_fact:
+    cloud_instance_map: {}
+    cloud_interface_map: {}
+
 - name: Get the instance facts for project {{ cloud_vpc_data.project }}
   ec2_instance_facts:
     region: "{{ cloud_vpc_data.region }}"

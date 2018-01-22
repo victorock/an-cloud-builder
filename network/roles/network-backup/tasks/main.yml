@@ -1,0 +1,48 @@
+---
+- set_fact:
+    net_backup_dir: "{{ playbook_dir }}/backups"
+  when: net_backup_dir is not defined
+
+- set_fact:
+    net_backup_file: "{{ net_backup_dir }}/{{ inventory_hostname }}.cfg"
+    net_backup_fail_on_change: "{{ net_backup_fail_on_change | default('no') }}"
+
+- set_fact:
+    net_backup_force: false
+  when: net_backup_force is not defined
+
+- name: Check to see if the backup file exists
+  stat:
+    path: "{{ net_backup_file }}"
+  register: stat_result
+
+- block:
+  - name: Create the backup directory {{ net_backup_dir }}
+    file:
+      path: "{{ net_backup_dir }}"
+      state: directory
+    changed_when: False
+
+  - include_tasks: "{{ role_path }}/tasks/{{ ansible_network_os }}-backup-config.yml"
+
+  - name: Copy the temp to the destination
+    copy:
+      src: "{{ temp_backup_file }}"
+      dest: "{{ net_backup_file }}"
+      force: "{{ net_backup_force | default('no') }}"
+
+  - name: Delete the temp file
+    file:
+      path: "{{ temp_backup_file }}"
+      state: absent
+    changed_when: False
+
+  when: (stat_result.stat.exists|bool == false) or (net_backup_force|bool == true)
+
+- block:
+  - include_tasks: "{{ role_path }}/tasks/{{ ansible_network_os }}-diff-config.yml"
+
+  - debug: msg="Configuration has changed."
+    failed_when: (diff_results.changed == true) and (net_backup_fail_on_change|bool)
+    when: diff_results.changed == true
+  when: stat_result.stat.exists == True

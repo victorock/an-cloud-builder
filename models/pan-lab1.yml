@@ -1,0 +1,89 @@
+---
+cloud_user: ec2-user
+cloud_name: smc_pan_demo1
+cloud_provider: aws
+cloud_region: us-east-1
+ansible_ssh_private_key_file: "./{{ cloud_name }}_key"
+
+cloud_acls:
+  pan-acl:
+    - { src_ip: 0.0.0.0/0, proto: all }
+ssh_keys: "{ '{{ cloud_name }}': '{{ lookup('file', './{{ ansible_ssh_private_key_file }}.pub') }}' }"
+vnf_outside_interface: ethernet1/1
+vnf_inside_interface: ethernet1/2
+vpc_list:
+  - name: "{{ cloud_name }}_vpc"
+    provider: "{{ cloud_provider }}"
+    region: "{{ cloud_region }}"
+    project: "{{ cloud_name }}"
+    cidr: 172.18.0.0/16
+    acl_list:
+      - pan-acl
+    networks:
+      - { name: "{{ cloud_name }}-outside", cidr: "172.18.0.0/24", az: "{{ cloud_region }}a" }
+      - { name: "{{ cloud_name }}-inside", cidr: "172.18.1.0/24", az: "{{ cloud_region }}a" }
+    instances:
+      - name: "{{ cloud_name }}_control"
+        size: micro
+        image: rhel7
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - subnet: "{{ cloud_name }}-outside"
+            acl: pan-acl
+            public_ip: true
+        tags:
+          Owner: "{{ cloud_name }}"
+          groups: control
+      - name: "{{ cloud_name }}_host1"
+        size: micro
+        image: rhel7
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - subnet: "{{ cloud_name }}-inside"
+            acl: pan-acl
+            public_ip: false
+        tags:
+          Owner: "{{ cloud_name }}"
+          groups: host
+      - name: "{{ cloud_name }}_rtr"
+        size: pan-small
+        image: pan-demo1
+        key_name: "{{ cloud_name }}"
+        interfaces:
+          - name: mgmt
+            subnet: "{{ cloud_name }}-outside"
+            acl: pan-acl
+            public_ip: true
+          - name: ethernet1/1
+            subnet: "{{ cloud_name }}-outside"
+            acl: pan-acl
+            public_ip: true
+          - name: ethernet1/2
+            subnet: "{{ cloud_name }}-inside"
+            acl: pan-acl
+            private_ip: "172.18.1.254"
+            gateway: yes
+        tags:
+          Owner: "{{ cloud_name }}"
+          network_os: panos
+          groups: network,pan
+nat_rules:
+  - { host: "{{ cloud_name }}_rtr", snat_interface: "{{ vnf_outside_interface }}", snat_port: 80, dnat_instance: "{{ cloud_name }}_host1", dnat_port: 80 }
+
+group_vars:
+  network:
+    network_username: admin
+    # Use Ansible Vault when encryption is required:
+    network_password: Cisc0123
+
+cloud_image_map:
+  aws:
+    us-east-1:
+      rhel7: ami-c998b6b2
+      pan-demo1: ami-12c89a69
+cloud_instance_map:
+  aws:
+    us-east-1:
+      micro: t2.micro
+      medium: t2.medium
+      pan-small: m4.xlarge

@@ -55,12 +55,14 @@
     loop_control:
       loop_var: cloud_interface_item
 
-  - name: Create the default intstance tags
+  - name: Create the default instance tags
     set_fact:
       cloud_instance_tags:
           Name: "{{ cloud_instance_item.name }}"
           Environment: "{{ cloud_vpc_data.project }}"
           Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
+
+  - debug: var=cloud_interface_list
 
   - name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
     ec2:
@@ -87,29 +89,13 @@
       user_data: "{{ cloud_instance_item.user_data | default(omit) }}"
     register: instance_results
 
-  - debug: var=instance_results
+  # - debug: var=instance_results
 
   - set_fact:
-      cloud_instance_id: instance_results.tagged_instances[0].id
-    when: instance_results.tagged_instances[0] is defined
+      cloud_instance_id: "{{ instance_results.tagged_instances[0].id }}"
+    failed_when: instance_results.tagged_instances[0] is not defined
 
   - name: Populate instance map
     set_fact:
-      cloud_instance_map: "{{ cloud_instance_map|default({}) | combine( {cloud_instance_item.name: cloud_instance_id} ) }}"
+      cloud_instance_map: "{{ cloud_instance_map | combine( {cloud_instance_item.name: cloud_instance_id} ) }}"
   when: cloud_instance_map[cloud_instance_item.name] is not defined
-
-# - name: Get the instance facts
-#   ec2_instance_facts:
-#     region: "{{ cloud_vpc_data.region }}"
-#     instance_ids:
-#       - "{{ instance_results.tagged_instances[0].id }}"
-#   register: instance_facts_results
-#
-# - name: Dereference instance facts
-#   set_fact:
-#     instance_facts: "{{ instance_facts_results.instances[0]}}"
-#
-# - name: Set the IP address for the instance
-#   set_fact:
-#     instance_ip_address: "{{ instance_facts.public_ip_address | default(instance_facts.private_ip_address, true) }}"
-#   when: instance_facts.tagged_instances is defined

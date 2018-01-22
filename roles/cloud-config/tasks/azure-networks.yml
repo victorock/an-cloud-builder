@@ -1,20 +1,46 @@
 ---
+- set_fact:
+    ssh_public_key_material: "{{ lookup('file', ansible_ssh_public_key_file) }}"
+    cloud_storage_group: "{{ cloud_vpc_name.lower() | regex_replace('[^a-z0-9]', '') | truncate(24, False, '') }}"
+
+- template:
+    src: azure_network.json.j2
+    dest: '~/Downloads/azuredeploy.json'
+
+- set_fact:
+    arm_template: "{{ lookup('template', 'azure_network.json.j2') }}"
+
+- debug: var=arm_template
+
 - name: Create Azure Resource Group {{ cloud_vpc_data.project }} in {{ cloud_vpc_data.region }}
   azure_rm_resourcegroup:
     location: "{{ cloud_vpc_data.region }}"
     name: "{{ cloud_vpc_name }}"
     state: present
 
-- name: Create Azure virtual network
-  azure_rm_virtualnetwork:
-    name: "{{ cloud_vpc_name }}_vnet"
+- name: Create storage account
+  azure_rm_storageaccount:
+    state: present
     resource_group: "{{ cloud_vpc_name }}"
     location: "{{ cloud_vpc_data.region }}"
-    address_prefixes_cidr:
-      - "{{ cloud_vpc_data.cidr }}"
-    dns_servers: "{{ cloud_vpc_data.dns_servers | default(omit) }}"
+    name: "{{ cloud_storage_group }}"
+    type: Standard_LRS
+    tags:
+      delete: on-exit
 
-- include: "{{ role_path }}/tasks/azure-network.yml"
-  with_items: "{{ cloud_network_data | default([]) }}"
-  loop_control:
-    loop_var: cloud_network_item
+- name: Create a container for the VHDs
+  azure_rm_storageblob:
+    resource_group: "{{ cloud_vpc_name }}"
+    storage_account_name: "{{ cloud_storage_group }}"
+    container: vhds
+    state: present
+
+- name: Deploy the template
+  azure_rm_deployment:
+    deployment_mode: complete
+    wait_for_deployment_completion: yes
+    state: present
+    location: "{{ cloud_vpc_data.region }}"
+    resource_group_name: "{{ cloud_vpc_name }}"
+    template: "{{ lookup('template', 'azure_network.json.j2') }}"
+#    template: "{{ lookup('template', 'azure_network.json.j2') }}"

@@ -1,0 +1,294 @@
+{#
+   package: virtual_machine
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/virtual_machine.json.j2
+
+   macro: create
+   Create a new *virtual machine*.
+
+   Parameters:
+
+      name - string
+      apiVersion - string
+      location - string
+      storageAccountName - string
+      nicNames - array, list of NIC names of existing *network interface* (see <network_interface>)
+      hardware_profile - object, "*hardware profile* (see <virtual_machine/hardware_profile>)
+      os_profile - object, *os profile* (see <virtual_machine/os_profile>)
+      storage_profile - object, *storage profile* (see <virtual_machine/storage_profile>)
+      network_profile - object, *network_profile* (see <virtual_machine/network_profile>) 
+      diagnostics_profile - object, *diagnostics profile* (see <virtual_machine/diagnostics_profile>)
+      extensions - array (optional), list of *virtual machine extension* to add to the VM (see <virtual_machine_extension>)
+
+Example:
+(start code)
+{% import 'azure-jinja2/macros/storage_account.json.j2' as storage_account %}
+{% import 'azure-jinja2/macros/virtual_network.json.j2' as virtual_network %}
+{% import 'azure-jinja2/macros/network_interface.json.j2' as network_interface %}
+{% import 'azure-jinja2/macros/virtual_machine.json.j2' as virtual_machine %}
+{% import 'azure-jinja2/macros/virtual_machine/data_disk.json.j2' as vm_data_disk %}
+{% import 'azure-jinja2/macros/virtual_machine/storage_profile.json.j2' as vm_storage_profile %}
+{% import 'azure-jinja2/macros/virtual_machine/hardware_profile.json.j2' as vm_hardware_profile %}
+{% import 'azure-jinja2/macros/virtual_machine/os_profile.json.j2' as vm_os_profile %}
+{% import 'azure-jinja2/macros/virtual_machine/network_profile.json.j2' as vm_network_profile %}
+{% import 'azure-jinja2/macros/virtual_machine/diagnostics_profile.json.j2' as vm_diag_profile %}
+
+"resources" : [
+    {{ storage_account.from_vars() }}
+    ,
+    {{ virtual_network.from_vars() }}
+    ,
+    {{ network_interface.from_vars(name = "nic1") }}
+    ,
+    {{ network_interface.from_vars(name = "nic2") }}
+    ,
+    {% set hardware_profile %}{{ vm_hardware_profile.from_vars() }}{% endset %}
+    {% set os_profile %}{{ vm_os_profile.from_vars() }}{% endset %}
+    {% set storage_profile %}{{ vm_storage_profile.from_vars() }}{% endset %}
+
+    {% set network_profile %}
+       {{ vm_network_profile.create(
+             nicNames = ["'nic1'", "'nic2'"]
+          )
+       }}
+    {% endset %}
+
+    {% set diagnostics_profile %}{{ vm_diag_profile.from_vars() }}{% endset %}
+
+    {{ virtual_machine.create(
+          name = "[variables('vmName')]",
+          apiVersion = "[variables('apiVersion')]",
+          location = "[variables('location')]",
+          storageAccountName = "variables('storageAccountName')",
+          nicNames = ["'nic1'", "'nic2'"],
+          hardware_profile = hardware_profile,
+          os_profile = os_profile,
+          storage_profile = storage_profile,
+          network_profile = network_profile,
+          diagnostics_profile = diagnostics_profile
+       )
+    }}
+]
+
+(end)
+
+#}
+
+{% macro create
+(
+   name,
+   apiVersion,
+   location,
+   storageAccountName,
+   nicNames,
+   hardware_profile,
+   os_profile,
+   storage_profile,
+   network_profile,
+   diagnostics_profile,
+   extensions = ""
+)
+-%}
+{
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "{{ apiVersion }}",
+      "name": "{{ name }}",
+      "location": "{{ location }}",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/',{{ storageAccountName }})]",
+        {% for nicName in nicNames %}
+        "[concat('Microsoft.Network/networkInterfaces/',{{ nicName }})]"
+        {% if not loop.last %},{% endif %}
+        {% endfor %}
+      ],
+      "properties": {
+        "hardwareProfile": {{ hardware_profile }},
+        "osProfile": {{ os_profile }},
+        "storageProfile": {{ storage_profile }},
+        "networkProfile":{{ network_profile }} 
+	{% if diagnostics_profile %}
+	,
+        "diagnosticsProfile": {{ diagnostics_profile }}
+	{% endif %}
+      }
+      {% if extensions %}
+      ,
+      "resources" : {{ extensions }}
+      {% endif %}
+}
+{%- endmacro %}
+
+{#
+   macro: from_vars
+   Create a new *virtual machine* from variables.
+
+   Parameters:
+
+      name - string = "[variables('vmName')]"
+      apiVersion - string = "[variables('apiVersion')]"
+      location - string = "[variables('location')]"
+      storageAccountName - string = "variables('storageAccountName')"
+      vmStorageAccountContainerName - string = "variables('vmStorageAccountContainerName')"
+      nicName - string = "variables('nicName')"
+      vmSize - string = "[variables('vmSize')]"
+      adminUsername - string = "[variables('adminUsername')]"
+      adminPassword - string = "[variables('adminPassword')]"
+      withSSHKey - string = "false"
+      sshKeyData - string = "[variables('sshKeyData')]"
+      sshKeyPath - string = "[variables('sshKeyPath')]"
+      imagePublisher - string = "[variables('imagePublisher')]"
+      imageOffer - string = "[variables('imageOffer')]"
+      OSVersion - string = "[variables('OSVersion')]"
+      version - string = "latest"
+      OSDiskName - string = "variables('OSDiskName')",
+      withDataDisk - string = "true"
+      sizeOfDiskInGB - string = "[variables('sizeOfDiskInGB')]"
+      dataDisk1VhdName - string = "variables('dataDisk1VhdName')"
+      extension - object (optional)
+      withDiagnosticsProfile - string = "true"
+
+Example:
+(start code)
+{% import 'azure-jinja2/macros/virtual_machine.json.j2' as virtual_machine %}
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "variables": {
+    ...
+  },
+  "resources" : [
+    ...,
+    {{ virtual_machine.from_vars() }}
+  ]
+}
+
+#}
+
+{% macro from_vars(
+      name                          = "[variables('vmName')]",
+      apiVersion                    = "[variables('apiVersion')]",
+      location                      = "[variables('location')]",
+      storageAccountName            = "variables('storageAccountName')",
+      vmStorageAccountContainerName = "variables('vmStorageAccountContainerName')",
+      nicName                       = "variables('nicName')",
+      vmSize                        = "[variables('vmSize')]",
+      adminUsername                 = "[variables('adminUsername')]",
+      adminPassword                 = "[variables('adminPassword')]",
+      withSSHKey                    = "false",
+      sshKeyData                    = "[variables('sshKeyData')]",
+      sshKeyPath                    = "[variables('sshKeyPath')]",
+      imagePublisher                = "[variables('imagePublisher')]",
+      imageOffer                    = "[variables('imageOffer')]",
+      OSVersion                     = "[variables('OSVersion')]",
+      version                       = "latest",
+      OSDiskName                    = "variables('OSDiskName')",
+      withDataDisk                  = "true",
+      sizeOfDiskInGB                = "[variables('sizeOfDiskInGB')]",
+      dataDisk1VhdName              = "variables('dataDisk1VhdName')",
+      extension                     = "",
+      withDiagnosticsProfile        = "true"
+)
+-%}
+{% import 'azure-jinja2/macros/virtual_machine/hardware_profile.json.j2' as vm_hw_profile %}
+{% set _hardware_profile %}
+{{ vm_hw_profile.from_vars(
+      vmSize = vmSize
+   )
+}}
+{% endset %}
+
+{% import 'azure-jinja2/macros/virtual_machine/os_profile.json.j2' as vm_os_profile %}
+
+{% set _os_profile %}
+{{ vm_os_profile.from_vars(
+     name          = name,
+     adminUsername = adminUsername,
+     adminPassword = adminPassword,
+     withSSHKey    = withSSHKey,
+     sshKeyData    = sshKeyData,
+     sshKeyPath    = sshKeyPath
+   ) 
+}}
+{% endset %}
+
+{% if withDataDisk == "true" %}
+{% import 'azure-jinja2/macros/virtual_machine/data_disk.json.j2' as vm_data_disk %}
+
+{% set _dataDisks %}
+[
+   {{ vm_data_disk.create(
+         name = "datadisk1",
+         storageAccountName = storageAccountName,
+         vmStorageAccountContainerName = vmStorageAccountContainerName,
+         sizeOfDiskInGB = sizeOfDiskInGB,
+         dataDiskVhdName = dataDisk1VhdName
+      )
+   }}
+]
+{% endset %}
+{% else %}
+{% set _dataDisks %}{% endset %}
+{% endif %}
+
+
+{% import 'azure-jinja2/macros/virtual_machine/storage_profile.json.j2' as vm_storage_profile %}
+
+{% set _storage_profile %}
+{{ vm_storage_profile.create(
+      storageAccountName = storageAccountName,
+      vmStorageAccountContainerName = vmStorageAccountContainerName,
+      imagePublisher = imagePublisher,
+      imageOffer= imageOffer,
+      OSVersion = OSVersion,
+      version = version,
+      OSDiskName = OSDiskName,
+      dataDisks = _dataDisks
+   )
+}}
+{% endset %}
+
+{% import 'azure-jinja2/macros/virtual_machine/network_profile.json.j2' as vm_network_profile %}
+
+{% set _network_profile %}
+{{ vm_network_profile.from_vars(
+      nicName = nicName
+   )
+}}
+{% endset %}
+
+{% import 'azure-jinja2/macros/virtual_machine/diagnostics_profile.json.j2' as vm_diag_profile %}
+
+{% if withDiagnosticsProfile == "true" %}
+{% set _diagnostics_profile %}{{ vm_diag_profile.create(storageAccountName = storageAccountName) }}{% endset %}
+{% else %}
+{% set _diagnostics_profile %}{% endset %}
+{% endif %}
+ 
+{% if extension %}
+{% set _extensions %}
+[
+   {{ extension }}
+]
+{% endset %}
+{% else %}
+{% set _extensions %}{% endset %}
+{% endif %}
+
+{% set _nicName %}{{ nicName }}{% endset %}
+{% set _nicNames = [ _nicName ] %}
+
+{{ create(
+      name                = name,
+      apiVersion          = apiVersion,
+      location            = location,
+      storageAccountName  = storageAccountName,
+      nicNames            = _nicNames,
+      hardware_profile    = _hardware_profile,
+      os_profile          = _os_profile,
+      storage_profile     = _storage_profile,
+      network_profile     = _network_profile,
+      extensions          = _extensions,
+      diagnostics_profile = _diagnostics_profile
+   )
+}}
+{%- endmacro %}

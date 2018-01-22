@@ -1,0 +1,177 @@
+{#
+   package: network_interface
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/network_interface.json.j2
+
+   macro: create
+   Create a new *network interface*.
+
+   A network interface has to be attached to a *subnet* of an existing *virtual network* (see <virtual_network>)
+
+   Parameters:
+
+      name - string
+      apiVersion - string
+      location - string
+      virtualNetworkName - string, name of an existing VNET
+      subnetName - string, name of a subnet of an existing VNET
+      publicIPAddressName - string (optional)
+      networkSecurityGroupName - string (optional)
+
+Example:
+(start code)
+{% import 'azure-jinja2/macros/network_interface.json.j2' as network_interface %}
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "variables": {
+    ... 
+  },
+  "resources" : [
+    ...,
+    {{ network_interface.create(
+          name = "myVMNic",
+          apiVersion = "2015-06-15",
+          location = "West Europe",
+          virtualNetworkName = "MyVNet",
+          subnetName = "Subnet"
+       ) 
+    }}
+  ]
+}
+
+(end)
+
+#}
+
+
+{% macro create
+(
+   name,
+   apiVersion,
+   location,
+   virtualNetworkName,
+   subnetName,
+   publicIPAddressName = "",
+   networkSecurityGroupName = ""
+)
+-%}
+{
+   "type": "Microsoft.Network/networkInterfaces",
+   "apiVersion": "{{ apiVersion }}",
+   "location": "{{ location }}",
+   "name": "{{ name }}",
+   "dependsOn": [
+      {% if publicIPAddressName %}
+      "[concat('Microsoft.Network/publicIPAddresses/',{{ publicIPAddressName }})]",
+      {% endif %}
+      {% if networkSecurityGroupName %}
+      "[concat('Microsoft.Network/networkSecurityGroups/',{{ networkSecurityGroupName }})]",
+      {% endif %}
+      "[concat('Microsoft.Network/virtualNetworks/',{{ virtualNetworkName }})]"
+   ],
+   "properties": {
+     "ipConfigurations": [
+       {
+         "name": "ipconfig1",
+         "properties": {
+           "privateIPAllocationMethod": "Dynamic",
+	   {% if publicIPAddressName %}
+           "publicIPAddress": {
+	      "id": "[resourceId('Microsoft.Network/publicIPAddresses',{{ publicIPAddressName }})]"
+           },
+	   {% endif %}
+           "subnet": {
+	      "id": "[concat(resourceId('Microsoft.Network/virtualNetworks',{{ virtualNetworkName }}),'/subnets/',{{ subnetName }})]"
+           }
+         }
+       }
+     ]
+     {% if networkSecurityGroupName %}
+     ,
+     "networkSecurityGroup": {
+        "id": "[resourceId('Microsoft.Network/networkSecurityGroups',{{ networkSecurityGroupName }})]"
+     }
+     {% endif %}
+   }
+}
+{%- endmacro %}
+
+{#
+   macro: from_vars
+   Create a new *network interface* from JSON variables.
+
+   Parameters:
+
+      name - string = "[variables('nicName')]"
+      apiVersion - string = "[variables('apiVersion')]"
+      location - string = "[variables('location')]"
+      virtualNetworkName - string = "variables('virtualNetworkName')"
+      subnetName - string = "variables('subnetName')"
+      withPublicIP - string = "false", set to "true" if you want to use the *publicIPAddressName* parameter
+      publicIPAddressName - string = "variables('publicIPAddressName')"
+      withNSG - string = "false", set to "true" if you want to use the *networkSecurityGroupName* parameter
+      networkSecurityGroupName - string = "variables('networkSecurityGroupName')"
+
+   Example:
+(start code)
+{% import 'azure-jinja2/macros/virtual_network.json.j2' as virtual_network %}
+{% import 'azure-jinja2/macros/network_interface.json.j2' as network_interface %}
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "variables": {
+    "nicName": "myVMNic",
+    "apiVersion": "2015-06-15"
+    "location": "[resourceGroup().location]",
+    "virtualNetworkName": "MyVNET",
+    "addressPrefix": "10.0.0.0/16",
+    "subnetName": "Subnet",
+    "subnetPrefix": "10.0.0.0/24",
+  },
+  "resources" : [
+    {{ virtual_network.from_vars() }},
+    {{ network_interface.from_vars() }}
+  ]
+}
+
+(end)
+
+#}
+
+{% macro from_vars(
+      name                     = "[variables('nicName')]",
+      apiVersion               = "[variables('apiVersion')]",
+      location                 = "[variables('location')]",
+      virtualNetworkName       = "variables('virtualNetworkName')",
+      subnetName               = "variables('subnetName')",
+      withPublicIP             = "false",
+      publicIPAddressName      = "variables('publicIPAddressName')",
+      withNSG                  = "false",
+      networkSecurityGroupName = "variables('networkSecurityGroupName')"
+)
+-%}
+{% if withPublicIP != "false" %}
+   {% set _publicIPAddressName = publicIPAddressName %}
+{% else %}
+   {% set _publicIPAddressName = "" %}
+{% endif %}
+
+{% if withNSG != "false" %}
+   {% set _networkSecurityGroupName = networkSecurityGroupName %}
+{% else %}
+   {% set _networkSecurityGroupName = "" %}
+{% endif %}
+
+{{ create(
+     name = name,
+     apiVersion = apiVersion,
+     location = location,
+     publicIPAddressName = _publicIPAddressName,
+     virtualNetworkName = virtualNetworkName,
+     networkSecurityGroupName = _networkSecurityGroupName,
+     subnetName = subnetName
+   )
+}}     
+{%- endmacro %}

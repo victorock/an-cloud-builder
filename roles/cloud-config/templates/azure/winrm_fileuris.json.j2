@@ -1,0 +1,27 @@
+{#
+   package: winrm_fileuris 
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/winrm_fileuris.json.j2
+
+   macro: create
+   Create the URIs required by the WinRM extension*.
+
+Example:
+(start code)
+
+{% import 'azure-jinja2/macros/winrm_fileuris.json.j2' as winrm_fileuris %}
+
+{% set winRMFileUris %}
+  {{ winrm_fileuris.create() }}
+{% endset %}
+
+(end)
+
+#}
+
+{% macro create() %}
+[
+   "https://raw.githubusercontent.com/sebbrochet/azure-jinja2/master/files/winrm_extension/ConfigureWinRM.ps1",
+   "https://raw.githubusercontent.com/sebbrochet/azure-jinja2/master/files/winrm_extension/makecert.exe",
+   "https://raw.githubusercontent.com/sebbrochet/azure-jinja2/master/files/winrm_extension/winrmconf.cmd"
+]
+{% endmacro %}

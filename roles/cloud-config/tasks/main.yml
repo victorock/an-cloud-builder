@@ -17,7 +17,7 @@
 
 - include_tasks: "security-groups.yml"
   vars:
-    cloud_security_group_data: "{{ acl_dict | default([]) }}"
+    cloud_security_group_data: "{{ cloud_acls | default([]) }}"
   tags:
     - security-groups
 
@@ -32,7 +32,7 @@
 
 - include_tasks: "routes.yml"
   vars:
-    cloud_route_data: "{{ vpc_item.routes | default([]) }}"
+    cloud_network_data: "{{ cloud_vpc_data.networks | default([]) }}"
   tags:
     - routes
 

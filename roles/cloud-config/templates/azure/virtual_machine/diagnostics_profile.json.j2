@@ -1,0 +1,75 @@
+{#
+   package: virtual_machine/diagnostics_profile
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/virtual_machine/diagnostics_profile.json.j2
+
+   macro: create
+   Create a new *diagnostics profile* to be used in a *virtual machine* (see <virtual_machine>).
+
+   Parameters:
+
+      storageAccountName - string
+      enabled - string = "true", set to "false" to disable
+
+   Example:
+(start code)
+{% import 'azure-jinja2/macros/virtual_machine/data_disk.json.j2' as vm_diag_profile %}
+
+   {{ vm_diag_profile.create(
+         storageAccountName = "[concat(uniquestring(resourceGroup().id), 'salinuxvm')]"
+      )
+   }}
+
+(end)
+
+
+#}
+
+{% macro create(
+     storageAccountName,
+     enabled = "true"
+   )
+-%}
+{
+     "bootDiagnostics": {
+        "enabled": "{{ enabled }}",
+        "storageUri": "[concat('http://',{{ storageAccountName }},'.blob.core.windows.net')]"
+     }
+}
+{%- endmacro %}
+
+{#
+   macro: from_vars
+   Create a new *diagnostics profile* to be used in a *virtual machine* (see <virtual_machine>).
+
+   Parameters:
+
+      storageAccountName - string
+      enabled - string = "true", set to "false" to disable
+
+   Example:
+(start code)
+{% import 'azure-jinja2/macros/virtual_machine/data_disk.json.j2' as vm_diag_profile %}
+
+   {{ vm_diag_profile.create(
+         storageAccountName = "[concat(uniquestring(resourceGroup().id), 'salinuxvm')]"
+      )
+   }}
+
+(end)
+
+
+#}
+
+{% macro from_vars(
+     storageAccountName = "variables('storageAccountName')",
+     enabled = "true"
+   )
+-%}
+{{
+   create(
+     storageAccountName = storageAccountName,
+     enabled = enabled
+   )
+}}
+{%- endmacro %}
+

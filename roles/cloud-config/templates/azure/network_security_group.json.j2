@@ -1,0 +1,100 @@
+{#
+   package: network_security_group
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/network_security_group.json.j2
+
+   macro: create
+   Create a new *network security group*.
+
+   Parameters:
+
+      name - string
+      apiVersion - string
+      location - string
+      securityRules - array, list of security rules to enforce (see <network_security_group/security_rules>)
+
+   Example:
+(start code)
+
+{% import 'azure-jinja2/macros/security_rules.json.j2' as security_rules %}
+{% import 'azure-jinja2/macros/network_security_group.json.j2' as network_security_group %}
+
+   "resources" : [
+       ...,
+       {% set jumbox_security_rules %}
+       [ {{ security_rules.SSH() }}, {{ security_rules.HTTPS() }} ]
+       {% endset %}
+       {{ network_security_group.from_vars(securityRules = jumbox_security_rules) }}
+   ]
+
+(end)
+
+
+#}
+
+
+{% macro create
+(
+   name,
+   apiVersion,
+   location,
+   securityRules
+)
+-%}
+
+{
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "{{ apiVersion }}",
+      "name": "{{ name }}",
+      "location": "{{ location }}",
+      "properties": {
+         "securityRules": {{ securityRules }}
+      }
+}
+{%- endmacro %}
+
+{#
+   macro: from_vars
+   Create a new *network security group* from JSON variables.
+
+   Parameters:
+
+      name - string = "[variables('networkSecurityGroupName')]"
+      apiVersion - string = "[variables('apiVersion')]"
+      location - string = "[variables('location')]"
+      securityRules - array = "[]", list of security rules to enforce (see <security_rules>)
+
+   Example:
+(start code)
+
+{% import 'azure-jinja2/macros/security_rules.json.j2' as security_rules %}
+{% import 'azure-jinja2/macros/network_security_group.json.j2' as network_security_group %}
+
+   "resources" : [
+       ...,
+       {% set jumbox_security_rules %}
+       [ {{ security_rules.SSH() }}, {{ security_rules.HTTPS() }} ]
+       {% endset %}
+       {{ network_security_group.from_vars(securityRules = jumbox_security_rules) }}
+   ]
+
+(end)
+
+
+#}
+
+{% macro from_vars(
+      name          = "[variables('networkSecurityGroupName')]",
+      apiVersion    = "[variables('apiVersion')]",
+      location      = "[variables('location')]",
+      securityRules = "[]"
+   )
+-%}
+{{
+   create(
+      name = name,
+      apiVersion = apiVersion,
+      location = location,
+      securityRules = securityRules
+   )
+}}
+{%- endmacro %}

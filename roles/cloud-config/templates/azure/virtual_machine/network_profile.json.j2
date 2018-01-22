@@ -1,0 +1,76 @@
+{#
+   package: virtual_machine/network_profile
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/virtual_machine/network_profile.json.j2
+
+   macro: create
+   Create a new *network_profile* to be used in a *virtual machine* (see <virtual_machine>).
+
+   Parameters:
+
+      nicNames - array of string, names of existing *network interface* (see <network_interface>)
+
+   Example:
+(start code)
+{% import 'azure-jinja2/macros/virtual_machine/network_profile.json.j2' as vm_network_profile %}
+
+   {{ vm_network_profile.create(["'MyNIC'"]) }}
+
+(end)
+
+#}
+
+{% macro create(
+     nicNames
+   )
+-%}
+{
+   "networkInterfaces": [
+      {% for nicName in nicNames %}
+      {
+      {% if loop.length > 1 %}
+      "properties": {
+         {% if loop.first %}
+         "primary": true
+         {% else %}
+         "primary": false
+         {% endif %}
+      },
+      {% endif %}
+      "id": "[resourceId('Microsoft.Network/networkInterfaces',{{ nicName }})]"
+      }
+      {% if not loop.last %},{% endif %}
+      {% endfor %}
+   ]
+}
+{%- endmacro %}
+
+{#
+   macro: from_vars
+   Create a new *network_profile* to be used in a *virtual machine* (see <virtual_machine>).
+
+   Parameters:
+
+      nicName - string =  "['variables('nicName')]", name of an existing *network interface* (see <network_interface>)
+
+   Example:
+(start code)
+{% import 'azure-jinja2/macros/virtual_machine/network_profile.json.j2' as vm_network_profile %}
+
+   {{ vm_network_profile.from_vars() }}
+
+(end)
+
+#}
+
+{% macro from_vars(
+     nicName = "variables('nicName')"
+   )
+-%}
+
+{% set _nicName %}{{ nicName }}{% endset %}
+{% set _nicNames = [ _nicName ] %}
+
+{{
+   create(nicNames = _nicNames)
+}}
+{%- endmacro %}

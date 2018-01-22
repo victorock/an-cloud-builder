@@ -1,0 +1,16 @@
+{% macro subnet(
+      name,
+      apiVersion,
+      location,
+      addressPrefix,
+      subnetName,
+      subnetPrefix
+   )
+-%}
+           "subnets": [
+            {
+              "name": "{{ cloud_network_item.name }}",
+              "properties": {
+                "addressPrefix": "{{ cloud_network_item.cidr }}"
+            },
+{%- endmacro %}

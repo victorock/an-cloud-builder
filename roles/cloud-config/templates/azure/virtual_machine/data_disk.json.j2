@@ -1,0 +1,55 @@
+{#
+   package: virtual_machine/data_disk 
+   source: https://github.com/sebbrochet/azure-jinja2/blob/master/macros/virtual_machine/data_disk.json.j2
+
+   macro: create
+   Create a new *data disk* to be used in a *virtual machine* (see <virtual_machine>).
+
+   Parameters:
+
+      name - string
+      storageAccountName - string, name of an existing *storage account* (see <storage_account>) to store the disk
+      vmStorageAccountContainerName - string, name of the container in the storage account 
+      sizeOfDiskInGB - string, total size of the disk in GB
+      dataDiskVhdName - string, name of the VHD as will be displayed by the OS
+      lun - integer = 0,
+      createOption - string = "Empty"
+
+   Example:
+(start code)
+{% import 'azure-jinja2/macros/virtual_machine/data_disk.json.j2' as vm_data_disk %}
+
+   {{ vm_data_disk.create(
+         name = "datadisk1",
+         storageAccountName = "[concat(uniquestring(resourceGroup().id), 'salinuxvm')]",
+         vmStorageAccountContainerName = "vhds,
+         sizeOfDiskInGB = "100",
+         dataDiskVhdName = "datadisk1"
+      )
+   }}
+
+(end)
+
+
+#}
+
+{% macro create(
+     name,
+     storageAccountName,
+     vmStorageAccountContainerName,
+     sizeOfDiskInGB,
+     dataDiskVhdName,
+     lun = 0,
+     createOption = "Empty"
+   )
+-%}
+{
+   "name": "{{ name }}",
+   "diskSizeGB": "{{ sizeOfDiskInGB }}",
+   "lun": {{ lun }},
+   "vhd": {
+      "uri": "[concat('http://',{{ storageAccountName }},'.blob.core.windows.net/',{{ vmStorageAccountContainerName }},'/',{{ dataDiskVhdName }},'.vhd')]"
+   },
+   "createOption": "{{ createOption }}"
+}
+{%- endmacro %}
