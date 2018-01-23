@@ -1,6 +1,5 @@
 ---
-- name: Show IOS facts
-  hosts: routers
+- hosts: network
   connection: local
   gather_facts: False
   tasks:
@@ -8,6 +7,5 @@
     - name: Get facts
       ios_facts:
         gather_subset: all
-      register: ios_facts
 
-    - debug: var=ios_facts
+    - debug: msg="Serial Number is {{ ansible_net_serialnum }}"

@@ -18,7 +18,7 @@
 
 - name: Add host to inventory
   add_host:
-    hostname: "{{ instance_facts_item.tags.Name }}"
+    hostname: "{{ instance_facts_item.tags.Name.split('.')[0] }}"
     ansible_host: "{{ instance_ip_address }}"
     ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
     groups: "{{ instance_facts_item.tags.groups | default(omit) }}"

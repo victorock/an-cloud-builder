@@ -49,9 +49,11 @@
         mode: 0755
       delegate_to: localhost
 
+    - debug: var=interfaces
+
     - name: Create the interfaces file for {{ inventory_hostname }}
       template:
-        src: "{{ playbook_dir }}/templates/local-interfaces.j2"
+        src: local-interfaces.j2
         dest: "{{ inventory_root }}/{{ cloud_name }}/host_vars/{{ inventory_hostname }}/interfaces.yml"
       delegate_to: localhost
       when: interfaces is defined

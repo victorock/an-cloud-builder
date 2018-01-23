@@ -16,7 +16,7 @@
         server: "{{ ansible_host }}"
         user: "{{ network_username }}"
         password: "{{ network_password }}"
-        hostname: "{{ interfaces.mgmt.public_dns_name }}"
+        hostname: "{{ interfaces[0].public_dns_name }}"
       validate_certs: "no"
 
     # - name: Set the DNS settings on the BIG-IP
@@ -42,13 +42,13 @@
     #         - 169.254.169.123
     #     validate_certs: "no"
     #
-    # - name: Set timezone
-    #   bigip_device_ntp:
-    #     server: "{{ ansible_host }}"
-    #     user: "{{ network_username }}"
-    #     password: "{{ network_password }}"
-    #     timezone: "America/New_York"
-    #     validate_certs: "no"
+    - name: Set timezone
+      bigip_device_ntp:
+        server: "{{ ansible_host }}"
+        user: "{{ network_username }}"
+        password: "{{ network_password }}"
+        timezone: "America/New_York"
+        validate_certs: "no"
 
     - name: Create Outside VLAN
       bigip_vlan:
@@ -61,7 +61,7 @@
 
     - name: Address Outside Interface
       bigip_selfip:
-          address: "{{ interfaces.eth1.private_ip_address }}"
+          address: "{{ interfaces[1].private_ip_address }}"
           name: "outside"
           netmask: "255.255.255.0"
           server: "{{ ansible_host }}"
@@ -81,7 +81,7 @@
 
     - name: Address Inside Interface
       bigip_selfip:
-          address: "{{ interfaces.eth0.private_ip_address }}"
+          address: "{{ interfaces[2].private_ip_address }}"
           name: "inside"
           netmask: "255.255.255.0"
           server: "{{ ansible_host }}"

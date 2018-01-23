@@ -1,15 +1,17 @@
 ---
-- name: Run command on IOS and evaulate the output
-  hosts: network
+- hosts: network
   gather_facts: no
   connection: local
   tasks:
-    - name: show version and show interfaces
+    - name: show version
       ios_command:
         commands:
           - show version
         wait_for:
-          - result[0] contains IOS
-      register: command_results
+          - result[0] contains Version
+      register: results
 
-    - debug: var=command_results.stdout_lines
+    - set_fact:
+        ver: "{{ results.stdout[0]|regex_search('Version ([0-9.]+)','\\1') }}"
+
+    - debug: var=ver

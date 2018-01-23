@@ -49,7 +49,7 @@ vpc_list:
             public_ip: true
         tags:
           Owner: "{{ cloud_name }}"
-          groups: control-hosts
+          groups: hosts
       - name: "host1.{{ cloud_name }}"
         size: micro
         image: rhel7
@@ -60,7 +60,7 @@ vpc_list:
             public_ip: false
         tags:
           Owner: "{{ cloud_name }}"
-          groups: app-hosts
+          groups: app_hosts, hosts
       - name: "host2.{{ cloud_name }}"
         size: micro
         image: rhel7
@@ -71,7 +71,7 @@ vpc_list:
             public_ip: false
         tags:
           Owner: "{{ cloud_name }}"
-          groups: app-hosts
+          groups: app_hosts, hosts
       - name: "f5.{{ cloud_name }}"
         size: medium
         image: f5-25-good
@@ -107,11 +107,13 @@ vpc_list:
           - name: ethernet1/1
             subnet: "outside.{{ cloud_name }}"
             acl: vnf-acl
+            zone_name: untrust
             private_ip: 172.18.1.254
             public_ip: true
           - name: ethernet1/2
             subnet: "inside.{{ cloud_name }}"
             acl: vnf-acl
+            zone_name: trust
             private_ip: 172.18.2.254
         tags:
           Owner: "{{ cloud_name }}"
@@ -122,6 +124,32 @@ group_vars:
     network_username: admin
     # Use Ansible Vault when encryption is required:
     network_password: Cisc0123
+  panos:
+    panos_nat_rules:
+      - rule_name: "NATAllOut"
+        source_zone: ["trust"]
+        destination_zone: "untrust"
+        source_ip: ["any"]
+        destination_ip: ["any"]
+        snat_type: "dynamic-ip-and-port"
+        snat_interface: "ethernet1/1"
+    panos_objects:
+      - serviceobject: 'service-ssh'
+        destination_port: '22'
+        protocol: 'tcp'
+        description: 'ssh on 22'
+    panos_security_rules:
+      - rule_name: 'Allow Outgoing'
+        description: 'Allow Outgoing traffic'
+        source_zone: ['untrust']
+        destination_zone: ['trust']
+        action: 'allow'
+      - rule_name: 'SSH traffic'
+        service: 'service-ssh'
+        description: 'Allow SSH traffic'
+        source_zone: ['untrust']
+        destination_zone: ['trust']
+        action: 'allow'
 
 cloud_image_map:
   aws:

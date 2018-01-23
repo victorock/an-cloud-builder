@@ -15,7 +15,7 @@
       run_once: yes
 
 - name: Create vars files
-  hosts: control-hosts
+  hosts: control
   become: yes
   vars:
     demo_kit_root: '/var/lib/awx/projects/an-demo-kit'
@@ -39,20 +39,12 @@
         ansible_tower_version: 3.2.2
       become: yes
 
-    - name: Allow password authentication
-      lineinfile: dest=/etc/ssh/sshd_config
-                  regexp="^PasswordAuthentication"
-                  line="PasswordAuthentication yes"
-                  state=present
-      become: yes
-      notify: Restart sshd
-
     - user:
         name: "{{ lab_username }}"
         comment: "Lab User"
         password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
         uid: 2000
-        group: wheel
+        #group: wheel
 
     # - name: Install EPEL repository
     #   yum:
@@ -91,22 +83,8 @@
         - pyopenssl
         - netaddr
         - ansible-tower-cli
-    #     #- ansible
-    #     - paramiko
-    #     - PyYAML
-    #     - Jinja2
-    #     - httplib2
-    #     - six
-    #     #- shade
-    #     - jxmlease
-    #     - ncclient
-    #     - boto
-    #     - boto3
-    #     - awscli
-    #     - ansible-tower-cli
+        - xmltodict
 
-    #     #- junos-eznc
-    #   become: yes
 
     - name: Add IP addresses to /etc/hosts
       lineinfile:
@@ -141,9 +119,16 @@
         - "{{ demo_kit_root }}/inventory/host_vars"
         - "{{ demo_kit_root }}/inventory/group_vars"
 
+    - name: Create a symlink to the repo in {{ lab_username }}' home
+      file:
+        src: "{{ demo_kit_root }}"
+        dest: "~{{ lab_username }}/an-demo-kit"
+        owner: "{{ lab_username }}"
+        state: link
+
     - name: Create the inventory file on the control node(s)
       template:
-        src: "{{ playbook_dir }}/templates/control-inventory.j2"
+        src: control-inventory.j2
         dest: "{{ demo_kit_root }}/inventory/hosts"
         owner: "{{ lab_username }}"
 
@@ -199,13 +184,21 @@
 
     - name: create the ~/.tower.cfg
       blockinfile:
-        path: "~{{ lab_username }}/.ansible.cfg"
+        path: "~{{ lab_username }}/.tower.cfg"
         create: yes
         owner: "{{ lab_username }}"
         block: |
           host: "{{ inventory_hostname }}"
           username: admin
           password: "{{ ansible_tower_admin_pass }}"
+
+    - name: Allow password authentication
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PasswordAuthentication"
+                  line="PasswordAuthentication yes"
+                  state=present
+      become: yes
+      notify: Restart sshd
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
 
