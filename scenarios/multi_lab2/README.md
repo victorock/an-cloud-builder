@@ -1,7 +1,15 @@
-Ansible Networking Demo Kit
+Scenario multi-lab2
 =========
 
-This is a set of playbooks used for provisioning ansible networking demos in clouds.  It takes a Blueprint and creates that architecture in the cloud provider specified by that blueprint.
+Topology
+------------
+
+![multi-lab2 topology](multi-lab2-topo.png)
+
+Scenario
+--------
+
+This topology presents a simplified data center construct with an inside network, an outside network, and a management network.  Two hosts are placed in the inside network that present web services.  Two VNFs are also placed to provides firewall and load balancing services, a Palo Alto firewall and am F5 Big-IP.  The Palo Alto firewall provides NAT services to the inside network and presents host1 through a 1:1 SSH NAT from its outside interface.  The F5 load balances incoming connections to port 80 on its outside port to port 80 on host1 an host2
 
 Requirements
 ------------

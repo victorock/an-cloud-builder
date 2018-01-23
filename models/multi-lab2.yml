@@ -93,8 +93,8 @@ vpc_list:
             private_ip: 172.18.2.253
         tags:
           Owner: "{{ cloud_name }}"
-          network_os: f5
-          groups: network,f5
+          network_os: tmos
+          groups: network,tmos
       - name: "pan.{{ cloud_name }}"
         size: xlarge
         image: pan-payg
@@ -118,7 +118,7 @@ vpc_list:
         tags:
           Owner: "{{ cloud_name }}"
           network_os: panos
-          groups: network,pan
+          groups: network,panos
 group_vars:
   network:
     network_username: admin

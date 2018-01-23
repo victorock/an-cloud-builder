@@ -26,32 +26,28 @@
       yum:
         name: '*'
         state: latest
-      become: yes
 
-    # - name: Install Ansible
-    #   yum:
-    #     name: "https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.4.2.0-1.el7.ans.noarch.rpm"
-    #   become: yes
+    - name: Install EPEL repository
+      yum:
+        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+
+    - name: Install Ansible
+      yum:
+        name: "https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.4.2.0-1.el7.ans.noarch.rpm"
 
     - include_role:
         name: ansible-tower
       vars:
         ansible_tower_version: 3.2.2
-      become: yes
+      tags:
+        - tower
 
     - user:
         name: "{{ lab_username }}"
         comment: "Lab User"
         password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
         uid: 2000
-        #group: wheel
-
-    # - name: Install EPEL repository
-    #   yum:
-    #     name: epel-release
-    #     state: present
-    #   become: yes
-    #
+        group: wheel
 
     - name: Remove out of date Yum packages
       yum:
@@ -67,6 +63,7 @@
         state: latest
       with_items:
         - python2-pip
+        - git
 
     - name: Install PIP packages
       pip:
@@ -85,14 +82,12 @@
         - ansible-tower-cli
         - xmltodict
 
-
     - name: Add IP addresses to /etc/hosts
       lineinfile:
         dest: /etc/hosts
         line: "{{ hostvars[item].ansible_host }} {{ hostvars[item].inventory_hostname.split('.')[0] }}"
         state: present
       with_items: "{{ groups.all }}"
-      become: yes
 
     - name: Make the projects directory rx
       file:
@@ -132,13 +127,19 @@
         dest: "{{ demo_kit_root }}/inventory/hosts"
         owner: "{{ lab_username }}"
 
+    # - name: Create the group_vars files
+    #   copy:
+    #     dest: "{{ demo_kit_root }}/inventory/group_vars/{{ item.key }}.yml"
+    #     content: "{{ item.value | to_nice_yaml }}"
+    #     owner: "{{ lab_username }}"
+    #   with_dict: "{{ group_vars }}"
+    #   when: group_vars is defined
+
     - name: Create the group_vars files
       copy:
-        dest: "{{ demo_kit_root }}/inventory/group_vars/{{ item.key }}.yml"
-        content: "{{ item.value | to_nice_yaml }}"
+        src: "{{ playbook_dir }}/files/group_vars"
+        dest: "{{ demo_kit_root }}/inventory"
         owner: "{{ lab_username }}"
-      with_dict: "{{ group_vars }}"
-      when: group_vars is defined
 
     - name: Create the host_vars directories
       file:
@@ -188,7 +189,7 @@
         create: yes
         owner: "{{ lab_username }}"
         block: |
-          host: "{{ inventory_hostname }}"
+          host: localhost
           username: admin
           password: "{{ ansible_tower_admin_pass }}"
 
@@ -199,6 +200,11 @@
                   state=present
       become: yes
       notify: Restart sshd
+
+    - name: Disable certificate checking for Python
+      lineinfile:
+        dest: "~{{ lab_username }}/.bash_profile"
+        line: "export PYTHONHTTPSVERIFY=0"
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
 
