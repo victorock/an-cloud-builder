@@ -22,8 +22,8 @@
         partition: "Common"
         host: "{{ hostvars[item].ansible_host }}"
         name: "{{ hostvars[item].ansible_host }}"
-      when: groups.webserver is defined
-      with_items: "{{ groups.webserver }}"
+      when: groups.app_hosts is defined
+      with_items: "{{ groups.app_hosts }}"
 
     - name: Add host to pool member
       bigip_pool_member:
@@ -39,8 +39,8 @@
         connection_limit: 100
         rate_limit: 50
         ratio: 2
-      when: groups.webserver is defined
-      with_items: "{{ groups.webserver }}"
+      when: groups.app_hosts is defined
+      with_items: "{{ groups.app_hosts }}"
 
     - name: Add VS on BIG-IP
       bigip_virtual_server:
