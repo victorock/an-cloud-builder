@@ -1,6 +1,6 @@
 ---
 - name: Configure the webservers
-  hosts: webserver
+  hosts: app_hosts
   become: yes
   roles:
     - apache

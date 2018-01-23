@@ -51,7 +51,7 @@
 
     - name: Remove out of date Yum packages
       yum:
-        name: httpd
+        name: "{{ item }}"
         state: absent
       with_items:
         - python-requests

@@ -25,20 +25,6 @@
       when: groups.webserver is defined
       with_items: "{{ groups.webserver }}"
 
-    # - debug: var="{{ hostvars[item] }}"
-    #   with_items: "{{ groups.app }}"
-# - name: Enumerate the App hosts
-#   hosts: app
-#   connection: local
-#   gather_facts: False
-#   tasks:
-#     - debug: msg="{{ inventory_hostname }} is at address {{ hostvars[inventory_hostname].ansible_host }}"
-#
-# - name: Configure the F5s
-#   hosts: f5
-#   connection: local
-#   gather_facts: False
-#   tasks:
     - name: Add host to pool member
       bigip_pool_member:
         server: "{{ ansible_host }}"
@@ -62,10 +48,10 @@
         user: "{{ network_username }}"
         password: "{{ network_password }}"
         name: "httpvs"
-        destination: "{{ interfaces.eth0.private_ip_address }}"
+        destination: "{{ interfaces[1].private_ip_address }}"
         port: 80
         pool: "http-pool"
         snat: Automap
         validate_certs: False
 
-    - debug: msg="The Virtual Server Address is {{ interfaces.eth0.public_ip_address }}"
+    - debug: msg="The Virtual Server Address is {{ interfaces[1].public_ip_address }}"
