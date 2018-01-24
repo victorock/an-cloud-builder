@@ -22,6 +22,7 @@
     lab_username: 'labuser'
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
     use_ansible_devel: no
+    install_tower: no
   tasks:
     - name: Update all packages
       yum:
@@ -61,7 +62,7 @@
         name: ansible-tower
       vars:
         ansible_tower_version: 3.2.2
-      when: use_ansible_devel|bool == false
+      when: (install_tower|bool) and (use_ansible_devel|bool == false)
       tags:
         - tower
 

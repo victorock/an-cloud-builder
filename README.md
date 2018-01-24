@@ -1,12 +1,12 @@
 Ansible Networking Demo Kit
 =========
 
-This is a set of playbooks used for provisioning ansible networking demos in clouds.  It takes a Blueprint and creates that architecture in the cloud provider specified by that blueprint.
+This is a set of playbooks used for provisioning ansible networking demos in clouds.  It takes a model and creates that architecture in the cloud provider specified by that blueprint.
 
 Requirements
 ------------
 
-These playbooks require that you have your cloud environment setup correctly for authentication.  To pull down the repository:
+These playbooks assume that you have your cloud environment setup correctly for authentication.  To pull down the repository:
 
 ```
 git clone git@github.com:ismc/an-demo-kit.git
@@ -33,6 +33,10 @@ To configure the control node (install Ansible, setup Ansible Inventory, etc)
 ansible-playbook -e @models/csr-lab1.yml configure-control.yml
 ```
 
+- If you want to deploy tower on the control node, add `-e 'install_tower=yes'`
+
+- If you want to deploy with the Ansible devel branch, add `-e 'use_ansible_devel=yes'`.  This will also disable installing tower.
+
 You should see the IP address of the control node on successful completion of this playbook:
 
 TASK [debug] ************************************************************************************
@@ -45,7 +49,7 @@ At this point, you can ssh to `labuser@<control IP address>`
 ## Scenarios
 - csr-lab1: Two router setup: 2 x Cisco CSR (IOS)
 - multi-lab1: Two router setup: Cisco CSR (IOS) and Juniper MX
-- [multi_lab2](scenarios/multi-lab2): A Palo Alto firewall and a F5 Big-IP
+- [multi-lab2](scenarios/multi-lab2): A Palo Alto firewall and a F5 Big-IP
 
 ## Inventory
 

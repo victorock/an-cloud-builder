@@ -50,4 +50,16 @@ groups {
         }
     }
 }
+system {
+    root-authentication {
+        encrypted-password "$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0";
+    }
+    services {
+        netconf {
+            ssh {
+                port 830;
+            }
+        }
+    }
+}
 apply-groups global;

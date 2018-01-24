@@ -1,4 +1,4 @@
-Scenario multi-lab2
+Scenario: multi-lab2
 =========
 
 Topology
