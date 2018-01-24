@@ -45,7 +45,7 @@ At this point, you can ssh to labuser@<control IP address>
 ## Scenarios
 - csr-lab1: Two router setup: 2 x Cisco CSR (IOS)
 - multi-lab1: Two router setup: Cisco CSR (IOS) and Juniper MX
-- [multi-lab2](scenarios/multi-lab2): A Palo Alto firewall and a F5 Big-IP
+- [multi-lab2](scenarios/multi-lab2/README.md): A Palo Alto firewall and a F5 Big-IP
 
 ## Inventory
 
