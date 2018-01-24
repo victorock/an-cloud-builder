@@ -61,9 +61,9 @@
 
     - name: Address Outside Interface
       bigip_selfip:
-          address: "{{ interfaces[1].ip }}"
+          address: "{{ interfaces[1].ip | ipaddr('address') }}"
           name: "outside"
-          netmask: "{{ interfaces[1].ip | ipaaddr('netmask') }}"
+          netmask: "{{ interfaces[1].ip | ipaddr('netmask') }}"
           server: "{{ ansible_host }}"
           user: "{{ network_username }}"
           password: "{{ network_password }}"
@@ -81,9 +81,9 @@
 
     - name: Address Inside Interface
       bigip_selfip:
-          address: "{{ interfaces[2].ip }}"
+          address: "{{ interfaces[2].ip | ipaddr('address') }}"
           name: "inside"
-          netmask: "{{ interfaces[2].ip | ipaaddr('netmask') }}"
+          netmask: "{{ interfaces[2].ip | ipaddr('netmask') }}"
           server: "{{ ansible_host }}"
           user: "{{ network_username }}"
           password: "{{ network_password }}"
