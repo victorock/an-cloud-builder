@@ -33,6 +33,20 @@ To configure the control node (install Ansible, setup Ansible Inventory, etc)
 ansible-playbook -e @models/csr-lab1.yml configure-control.yml
 ```
 
+You should see the IP address of the control node on successful completion of this playbook:
+
+TASK [debug] ************************************************************************************
+ok: [control] => {
+    "msg": "Control node public IP':' 34.235.93.223"
+}
+
+At this point, you can ssh to labuser@<control IP address>
+
+## Scenarios
+- csr-lab1: Two router setup: 2 x Cisco CSR (IOS)
+- multi-lab1: Two router setup: Cisco CSR (IOS) and Juniper MX
+- [multi-lab2](scenarios/multi-lab2): A Palo Alto firewall and a F5 Big-IP
+
 ## Inventory
 
 In cloud environments, it is best to pull inventory dynamically.  For the purposes of this, however, we create a static inventory on the control node as follows:
@@ -105,7 +119,7 @@ In order to run the example playbooks, create an inventory directory using
 command:
 
 ```
-ansible-playbook -i inventor network/network-facts.yml
+ansible-playbook -i inventory network/network-facts.yml
 ```
 
 `-i inventory/example` tells ansible-playbook where to look for the inventory.

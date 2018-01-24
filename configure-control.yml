@@ -21,33 +21,19 @@
     demo_kit_root: '/var/lib/awx/projects/an-demo-kit'
     lab_username: 'labuser'
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
+    use_ansible_devel: no
   tasks:
     - name: Update all packages
       yum:
         name: '*'
         state: latest
 
-    - name: Install EPEL repository
-      yum:
-        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-
-    - name: Install Ansible
-      yum:
-        name: "https://releases.ansible.com/ansible/rpm/release/epel-7-x86_64/ansible-2.4.2.0-1.el7.ans.noarch.rpm"
-
-    - include_role:
-        name: ansible-tower
-      vars:
-        ansible_tower_version: 3.2.2
-      tags:
-        - tower
-
-    - user:
-        name: "{{ lab_username }}"
-        comment: "Lab User"
-        password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
-        uid: 2000
-        group: wheel
+    - name: Add EPEL repository
+      yum_repository:
+        name: epel
+        description: EPEL YUM repo
+        baseurl: https://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+        gpgkey: https://mirror.steadfast.net/epel/RPM-GPG-KEY-EPEL-7
 
     - name: Remove out of date Yum packages
       yum:
@@ -65,6 +51,33 @@
         - python2-pip
         - git
 
+    - name: Install YUM packages
+      yum:
+        name: ansible
+        state: latest
+      when: use_ansible_devel|bool == false
+
+    - include_role:
+        name: ansible-tower
+      vars:
+        ansible_tower_version: 3.2.2
+      when: use_ansible_devel|bool == false
+      tags:
+        - tower
+
+    - name: Install Ansible Devel
+      pip:
+        name: git+git://github.com/ansible/ansible.git
+        state: latest
+      when: use_ansible_devel|bool
+
+    - user:
+        name: "{{ lab_username }}"
+        comment: "Lab User"
+        password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
+        uid: 2000
+        group: wheel
+
     - name: Install PIP packages
       pip:
         name: "{{ item }}"
@@ -81,6 +94,7 @@
         - netaddr
         - ansible-tower-cli
         - xmltodict
+        - ncclient
 
     - name: Add IP addresses to /etc/hosts
       lineinfile:

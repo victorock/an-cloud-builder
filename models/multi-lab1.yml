@@ -22,13 +22,24 @@ vpc_list:
     region: "{{ cloud_region1 }}"
     project: "{{ cloud_name }}"
     cidr: 172.17.0.0/16
-    acl_list:
-      - host-acl
-      - rtr-acl
     networks:
-      - { name: "mgmt.vpc1.{{ cloud_name }}", cidr: "172.17.0.0/24", az: "{{ cloud_region1 }}a" }
-      - { name: "outside.vpc1.{{ cloud_name }}", cidr: "172.17.1.0/24", az: "{{ cloud_region1 }}a" }
-      - { name: "inside.vpc1.{{ cloud_name }}", cidr: "172.17.2.0/24", az: "{{ cloud_region1 }}a" }
+      - name: "mgmt.vpc1.{{ cloud_name }}"
+        cidr: "172.17.0.0/24"
+        az: "{{ cloud_region1 }}a"
+      - name: "outside.vpc1.{{ cloud_name }}"
+        cidr: "172.17.1.0/24"
+        az: "{{ cloud_region1 }}a"
+        routes:
+          - cidr: "172.18.1.0/24"
+            instance: "rtr1.{{ cloud_name }}"
+            if_index: 1
+      - name: "inside.vpc1.{{ cloud_name }}"
+        cidr: "172.17.2.0/24"
+        az: "{{ cloud_region1 }}a"
+        routes:
+          - cidr: "0.0.0.0/0"
+            instance: "rtr1.{{ cloud_name }}"
+            if_index: 2
     instances:
       - name: "rtr1.{{ cloud_name }}"
         size: medium
@@ -53,9 +64,7 @@ vpc_list:
       - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
-        key_name: "{{ cloud_name }}"
         ansible_user: centos
-        # volume_size: 20
         interfaces:
           - name: eth0
             subnet: "outside.vpc1.{{ cloud_name }}"
@@ -64,20 +73,25 @@ vpc_list:
         tags:
           Owner: student
           groups: control
-    routes:
-      - { subnet: "outside.vpc1.{{ cloud_name }}", cidr: "172.18.2.0/24", instance: "rtr1.{{ cloud_name }}" }
   - name: "vpc2.{{ cloud_name }}"
     provider: "{{ cloud_provider2 }}"
     region: "{{ cloud_region2 }}"
     project: "{{ cloud_name }}"
     cidr: 172.18.0.0/16
-    acl_list:
-      - host-acl
-      - rtr-acl
     networks:
-      - { name: "mgmt.vpc2.{{ cloud_name }}", cidr: "172.18.0.0/24", az: "{{ cloud_region2 }}b" }
-      - { name: "outside.vpc2.{{ cloud_name }}", cidr: "172.18.1.0/24", az: "{{ cloud_region2 }}b" }
-      - { name: "inside.vpc2.{{ cloud_name }}", cidr: "172.18.2.0/24", az: "{{ cloud_region2 }}b" }
+      - name: "mgmt.vpc2.{{ cloud_name }}"
+        cidr: "172.18.0.0/24"
+        az: "{{ cloud_region2 }}b"
+      - name: "outside.vpc2.{{ cloud_name }}"
+        cidr: "172.18.1.0/24"
+        az: "{{ cloud_region2 }}b"
+      - name: "inside.vpc2.{{ cloud_name }}"
+        cidr: "172.18.2.0/24"
+        az: "{{ cloud_region2 }}b"
+        routes:
+          - cidr: "0.0.0.0/0"
+            instance: "rtr2.{{ cloud_name }}"
+            if_index: 2
     instances:
       - name: "rtr2.{{ cloud_name }}"
         size: xlarge
@@ -98,7 +112,6 @@ vpc_list:
             subnet: "inside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             private_ip: 172.18.2.254
-            gateway: yes
         tags:
           Owner: student
           network_os: junos
@@ -116,16 +129,6 @@ vpc_list:
         tags:
           Owner: student
           groups: hosts
-
-group_vars:
-  all:
-    domain_name: localdomain
-    domain_search:
-      - localdomain
-      - example.com
-    name_servers:
-      - 8.8.8.8
-      - 8.8.4.4
 
 cloud_image_map:
   aws:

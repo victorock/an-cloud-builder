@@ -41,7 +41,8 @@ vpc_list:
     instances:
       - name: "control.{{ cloud_name }}"
         size: medium
-        image: rhel7
+        image: centos7
+        ansible_user: centos
         interfaces:
           - name: eth0
             subnet: "mgmt.{{ cloud_name }}"
@@ -52,7 +53,8 @@ vpc_list:
           groups: hosts
       - name: "host1.{{ cloud_name }}"
         size: micro
-        image: rhel7
+        image: centos7
+        ansible_user: centos
         interfaces:
           - name: eth0
             subnet: "inside.{{ cloud_name }}"
@@ -63,7 +65,8 @@ vpc_list:
           groups: app_hosts, hosts
       - name: "host2.{{ cloud_name }}"
         size: micro
-        image: rhel7
+        image: centos7
+        ansible_user: centos
         interfaces:
           - name: eth0
             subnet: "inside.{{ cloud_name }}"
@@ -119,37 +122,6 @@ vpc_list:
           Owner: "{{ cloud_name }}"
           network_os: panos
           groups: network,panos
-group_vars:
-  network:
-    network_username: admin
-    # Use Ansible Vault when encryption is required:
-    network_password: Cisc0123
-  panos:
-    panos_nat_rules:
-      - rule_name: "NATAllOut"
-        source_zone: ["trust"]
-        destination_zone: "untrust"
-        source_ip: ["any"]
-        destination_ip: ["any"]
-        snat_type: "dynamic-ip-and-port"
-        snat_interface: "ethernet1/1"
-    panos_objects:
-      - serviceobject: 'service-ssh'
-        destination_port: '22'
-        protocol: 'tcp'
-        description: 'ssh on 22'
-    panos_security_rules:
-      - rule_name: 'Allow Outgoing'
-        description: 'Allow Outgoing traffic'
-        source_zone: ['untrust']
-        destination_zone: ['trust']
-        action: 'allow'
-      - rule_name: 'SSH traffic'
-        service: 'service-ssh'
-        description: 'Allow SSH traffic'
-        source_zone: ['untrust']
-        destination_zone: ['trust']
-        action: 'allow'
 
 cloud_image_map:
   aws:
@@ -162,7 +134,7 @@ cloud_image_map:
       f5-25-good: ami-fca61d98
       centos7: ami-b111aad5
   azure:
-    rhel7: { offer: CentOS, publisher: OpenLogic, sku: 7.4, version: latest }
+    centos7: { offer: CentOS, publisher: OpenLogic, sku: 7.4, version: latest }
 
 cloud_size_map:
   aws:

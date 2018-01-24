@@ -4,8 +4,8 @@
   become: yes
   roles:
     - apache
-  pre_tasks:
-    - name: Update all packages
-      yum:
-        name: '*'
-        state: latest
+  # pre_tasks:
+  #   - name: Update all packages
+  #     yum:
+  #       name: '*'
+  #       state: latest

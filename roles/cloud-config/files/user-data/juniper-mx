@@ -1,4 +1,16 @@
 #junos-config
+system {
+    root-authentication {
+        ssh-rsa "SSHRSAKEY"; ## SECRET-DATA
+    }
+    services {
+        netconf {
+            ssh {
+                port 830;
+            }
+        }
+    }
+}
 groups {
     global {
         system {
