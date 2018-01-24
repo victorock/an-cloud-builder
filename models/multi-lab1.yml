@@ -1,5 +1,5 @@
 ---
-demo_name: "{{ opt_name | default('adk-multi1') }}"
+demo_name: "{{ opt_name | default('multi-lab1') }}"
 demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
 cloud_name: "{{ demo_name }}.{{ demo_instance }}"
 cloud_provider1: aws
