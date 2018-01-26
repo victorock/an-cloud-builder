@@ -1,5 +1,5 @@
 ---
-demo_name: "{{ opt_name | default('csr-lab2') }}"
+demo_name: "{{ opt_name | default('hci_demo1') }}"
 demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
 cloud_name: "{{ demo_name }}.{{ demo_instance }}"
 cloud_provider1: azure
@@ -183,6 +183,7 @@ cloud_image_map:
       name: '16_7'
       sku: '16_7'
       version: 'latest'
+
 cloud_size_map:
   aws:
     micro: t2.micro

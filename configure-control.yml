@@ -104,7 +104,7 @@
         state: present
       with_items: "{{ groups.all }}"
 
-    - name: Make the projects directory rx
+    - name: Create the keys directory
       file:
         path: /var/lib/awx/projects
         state: directory

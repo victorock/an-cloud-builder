@@ -62,8 +62,6 @@
           Environment: "{{ cloud_vpc_data.project }}"
           Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
 
-  - debug: var=cloud_interface_list
-
   - name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
     ec2:
       aws_access_key: "{{ aws_access_key | default(omit) }}"

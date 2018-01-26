@@ -3,14 +3,28 @@
     ssh_public_key_material: "{{ lookup('file', ansible_ssh_public_key_file) }}"
     cloud_storage_group: "{{ cloud_vpc_name.lower() | regex_replace('[^a-z0-9]', '') | truncate(24, False, '') }}"
 
+# - debug: var=cloud_vpc_data.instances
+
+- name: Create a lookup table for static IPs
+  set_fact:
+    private_ip_map: "{{ private_ip_map|default({}) | combine( {instance_interface_item.0.name: instance_interface_item.1.private_ip} ) }}"
+  when: instance_interface_item.1.private_ip is defined
+  with_subelements:
+    - "{{ cloud_vpc_data.instances }}"
+    - interfaces
+  loop_control:
+    loop_var: instance_interface_item
+
+# - debug: var=private_ip_map
+#
 - template:
-    src: azure_network.json.j2
-    dest: '~/Downloads/azuredeploy.json'
-
-- set_fact:
-    arm_template: "{{ lookup('template', 'azure_network.json.j2') }}"
-
-- debug: var=arm_template
+    src: azure_deploy.json.j2
+    dest: '~/Downloads/azure_deploy.json'
+#
+# - set_fact:
+#     arm_template: "{{ lookup('template', 'azure_deploy.json.j2') }}"
+#
+# - debug: var=arm_template
 
 - name: Create Azure Resource Group {{ cloud_vpc_data.project }} in {{ cloud_vpc_data.region }}
   azure_rm_resourcegroup:
@@ -38,9 +52,13 @@
 - name: Deploy the template
   azure_rm_deployment:
     deployment_mode: complete
-    wait_for_deployment_completion: yes
+    wait_for_deployment_completion: no
     state: present
     location: "{{ cloud_vpc_data.region }}"
     resource_group_name: "{{ cloud_vpc_name }}"
-    template: "{{ lookup('template', 'azure_network.json.j2') }}"
-#    template: "{{ lookup('template', 'azure_network.json.j2') }}"
+    template: "{{ lookup('template', 'azure_deploy.json.j2') }}"
+
+# Pause for 5 minutes to build app cache.
+- name: Wait for the Azure deployment
+  pause:
+    minutes: 5

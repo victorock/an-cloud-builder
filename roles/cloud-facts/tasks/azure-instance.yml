@@ -1,0 +1,26 @@
+---
+- name: Deference the instance facts
+  set_fact:
+    instance_interfaces: []
+    primary_interface: "{{ cloud_instance_item.name.split('.')[0] }}.0"
+
+- include_tasks: "azure-interface.yml"
+  with_indexed_items: "{{ cloud_instance_item.interfaces | default([]) }}"
+  loop_control:
+    loop_var: cloud_interface_item
+
+- name: Set the IP address for the instance
+  set_fact:
+    instance_ip_address: "{{ public_ip_map[primary_interface] | default(private_ip_map[primary_interface], true) }}"
+
+- name: Add host to inventory
+  add_host:
+    hostname: "{{ cloud_instance_item.name.split('.')[0] }}"
+    ansible_host: "{{ public_ip_map[primary_interface] | default(private_ip_map[primary_interface], true) }}"
+    ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
+    groups: "{{ cloud_instance_item.tags.groups | default(omit) }}"
+    ansible_network_os: "{{ cloud_instance_item.tags.network_os | default(omit) }}"
+    private_ip_address: "{{ private_ip_map[primary_interface] }}"
+    interfaces: "{{ instance_interfaces }}"
+    cloud_template_item: "{{ cloud_instance_item }}"
+    cloud_vpc_data: "{{ cloud_vpc_data }}"

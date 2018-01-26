@@ -7,7 +7,7 @@
     ansible_ssh_public_key_file: "keys/{{ cloud_name }}_key.pub"
 
   tasks:
-    - name: Make the projects directory rx
+    - name: Create the keys directory
       file:
         path: keys
         state: directory
