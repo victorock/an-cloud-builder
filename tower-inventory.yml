@@ -42,6 +42,8 @@
     inventory_root: "{{ playbook_dir }}/inventory }}"
     group_vars_root: "{{ playbook_dir }}/files/group_vars"
     use_full_hostname: yes
+    inventory_name: "{{ opt_inventory_name | default('an-demo-kit') }}"
+
   tasks:
     - set_fact:
         hostname: "{{ inventory_hostname if (use_full_hostname|bool) else inventory_hostname.split('.')[0] }}"
@@ -56,7 +58,7 @@
 
     - name: Add tower inventory
       tower_inventory:
-        name: "an-demo-kit"
+        name: "{{ inventory_name }}"
         organization: "ismc"
         state: present
       delegate_to: localhost
@@ -67,7 +69,7 @@
     - name: Add tower group
       tower_group:
         name: "{{ item.key }}"
-        inventory: "an-demo-kit"
+        inventory: "{{ inventory_name }}"
         state: present
       with_dict: "{{ groups }}"
       when: item.key != 'all'
@@ -87,7 +89,7 @@
     - name: Add tower group variables
       tower_group:
         name: "{{ item.item.key }}"
-        inventory: "an-demo-kit"
+        inventory: "{{ inventory_name }}"
         state: present
         variables: "{{ lookup('file', item.invocation.module_args.path ) }}"
       when: item.stat.exists
@@ -97,7 +99,7 @@
     - name: Add tower host
       tower_host:
         name: "{{ hostname }}"
-        inventory: "an-demo-kit"
+        inventory: "{{ inventory_name }}"
         state: present
         variables:
           ansible_host: "{{ ansible_host }}"
