@@ -15,7 +15,7 @@
 
     - set_fact:
         opt_provider: "{{ opt_provider_region.split('/')[0] }}"
-        opt_region: "{{ opt_provider_region.split('/')[1] }"
+        opt_region: "{{ opt_provider_region.split('/')[1] }}"
       when: opt_provider_region is defined
 
     - name: Read in the Cloud Model {{ opt_model }}
