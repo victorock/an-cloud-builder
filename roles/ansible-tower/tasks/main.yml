@@ -12,8 +12,8 @@
     dest: "{{ ansible_tower_tmp }}/ansible-tower-setup-{{ ansible_tower_version }}/inventory"
 
 - name: Execute installation
+  command: './setup.sh'
   become: yes
-  shell: "./setup.sh"
   args:
     chdir: "{{ ansible_tower_tmp }}/ansible-tower-setup-{{ ansible_tower_version }}"
 

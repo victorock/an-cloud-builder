@@ -3,10 +3,22 @@
   connection: local
   gather_facts: no
   vars:
-    ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
-    ansible_ssh_public_key_file: "keys/{{ cloud_name }}_key.pub"
+    model_dir: "{{ playbook_dir }}/models"
+    inventory_root: ./inventory
 
   tasks:
+    - debug: msg="Must specify a model"
+      when: opt_model is not defined
+      failed_when: opt_model is not defined
+
+    - name: Read in the Cloud Model {{ opt_model }}
+      include_vars:
+        file: "{{ model_dir }}/{{ opt_model }}.yml"
+
+    - set_fact:
+        ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
+        ansible_ssh_public_key_file: "keys/{{ cloud_name }}_key.pub"
+
     - name: Create the keys directory
       file:
         path: keys
@@ -43,6 +55,7 @@
     #   run_once: yes
     #   when: key_results.changed
 
+
     - include_role:
         name: cloud-config
       vars:
@@ -51,5 +64,76 @@
       with_items: "{{ vpc_list | default([]) }}"
       loop_control:
         loop_var: vpc_item
-      delegate_to: localhost
       run_once: yes
+      tags:
+        - provision
+
+    - include_role:
+        name: cloud-facts
+      vars:
+        - cloud_vpc_name: "{{ vpc_item.name }}"
+        - cloud_vpc_data: "{{ vpc_item }}"
+      with_items: "{{ vpc_list | default([]) }}"
+      loop_control:
+        loop_var: vpc_item
+      run_once: yes
+      tags:
+        - facts
+
+    - name: Create the inventory directory
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0755
+      with_items:
+        - "{{ inventory_root }}"
+        - "{{ inventory_root }}/{{ cloud_tag }}"
+        - "{{ inventory_root }}/{{ cloud_tag }}/host_vars"
+        - "{{ inventory_root }}/{{ cloud_tag }}/group_vars"
+      tags:
+        - facts
+
+    - name: Create the inventory file on the local node
+      template:
+        src: "{{ playbook_dir }}/templates/local-inventory.j2"
+        dest: "{{ inventory_root }}/{{ cloud_tag }}/{{ cloud_instance }}"
+      tags:
+        - facts
+
+- name: Create vars files
+  hosts: network
+  gather_facts: no
+  vars:
+    inventory_root: ./inventory
+    model_dir: "{{ playbook_dir }}/models"
+
+  tasks:
+    - debug: var=hostvars[inventory_hostname]
+
+    - name: Read in the Cloud Model {{ opt_model }}
+      include_vars:
+        file: "{{ model_dir }}/{{ opt_model }}.yml"
+
+    - name: Create the {{ inventory_hostname }} directory
+      file:
+        path: "{{ inventory_root }}/{{ cloud_tag }}/host_vars/{{ inventory_hostname }}.{{ cloud_instance }}"
+        state: directory
+        mode: 0755
+      delegate_to: localhost
+
+    - debug: var=interfaces
+
+    - name: Create the interfaces file for {{ inventory_hostname }}
+      template:
+        src: local-interfaces.j2
+        dest: "{{ inventory_root }}/{{ cloud_tag }}/host_vars/{{ inventory_hostname }}.{{ cloud_instance }}/interfaces.yml"
+      delegate_to: localhost
+      when: interfaces is defined
+
+    # - name: Create the group_vars file
+    #   copy:
+    #     dest: "{{ inventory_root }}/{{ cloud_name }}/group_vars/{{ item.key }}.yml"
+    #     content: "{{ item.value | to_nice_yaml }}"
+    #   with_dict: "{{ group_vars }}"
+    #   when: group_vars is defined
+    #   delegate_to: localhost

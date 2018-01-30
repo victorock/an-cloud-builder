@@ -18,7 +18,6 @@
         name: "{{ item.key }}"
         inventory: "an-demo-kit"
         state: present
-        instance_filters: "{{ item.value | join(',') }}"
         tower_config_file: "{{ inventory_dir }}/tower_cli.cfg"
       with_dict: "{{ groups }}"
       when: item.key != 'all'
@@ -34,6 +33,7 @@
         variables:
           ansible_host: "{{ ansible_host }}"
           ansible_user: "{{ ansible_user }}"
+          group_names: "{{ group_names }}"
           ansible_network_os: "{{ ansible_network_os | default(omit) }}"
           interfaces: "{{ interfaces | default(omit) }}"
       delegate_to: localhost

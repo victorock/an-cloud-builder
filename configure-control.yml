@@ -1,21 +1,42 @@
 ---
 - name: Get the cloud facts
   hosts: localhost
+  gather_facts: no
+  vars:
+    model_dir: "{{ playbook_dir }}/models"
+    inventory_root: "{{ playbook_dir }}/inventory }}"
+    group_vars_root: "{{ playbook_dir }}/files/group_vars"
+    use_full_hostname: no
+
   tasks:
+    - assert:
+        that:
+          - opt_model is defined
+        msg: "You must specify a model"
+
+    - name: Read in the Cloud Model {{ opt_model }}
+      include_vars:
+        file: "{{ model_dir }}/{{ opt_model }}.yml"
+
+    - set_fact:
+        ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
+        ansible_ssh_public_key_file: "keys/{{ cloud_name }}_key.pub"
+
     - include_role:
         name: cloud-facts
       vars:
         - cloud_vpc_name: "{{ vpc_item.name }}"
         - cloud_vpc_data: "{{ vpc_item }}"
       with_items: "{{ vpc_list | default([]) }}"
-      tasks_from: instances
       loop_control:
         loop_var: vpc_item
       delegate_to: localhost
       run_once: yes
 
+    - debug: var=hostvars[inventory_hostname]
+
 - name: Create vars files
-  hosts: control
+  hosts: control_hosts
   become: yes
   vars:
     demo_kit_root: '/var/lib/awx/projects/an-demo-kit'
@@ -23,6 +44,7 @@
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
     use_ansible_devel: no
     install_tower: no
+
   tasks:
     - name: Update all packages
       yum:
@@ -62,7 +84,7 @@
         name: ansible-tower
       vars:
         ansible_tower_version: 3.2.2
-      when: (install_tower|bool) and (use_ansible_devel|bool == false)
+      when: (install_tower|bool)
       tags:
         - tower
 

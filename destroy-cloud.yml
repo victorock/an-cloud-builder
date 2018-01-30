@@ -2,8 +2,20 @@
 - hosts: localhost
   connection: local
   gather_facts: no
+  vars:
+    model_dir: "{{ playbook_dir }}/models"
+    inventory_root: ./inventory
+    key_root: ./keys
 
   tasks:
+    - debug: msg="Must specify a model"
+      when: opt_model is not defined
+      failed_when: opt_model is not defined
+
+    - name: Read in the Cloud Model {{ opt_model }}
+      include_vars:
+        file: "{{ model_dir }}/{{ opt_model }}.yml"
+
     - include_role:
         name: cloud-destroy
       vars:

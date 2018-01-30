@@ -21,6 +21,8 @@
 
 - name: Associate a public IP with interface {{ interface_facts.interface.id }} index {{ cloud_interface_index }}
   ec2_eip:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
     region: "{{ cloud_vpc_data.region }}"
     device_id: "{{ interface_facts.interface.id }}"
     in_vpc: yes
