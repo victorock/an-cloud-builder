@@ -66,7 +66,7 @@
     ec2:
       aws_access_key: "{{ aws_access_key | default(omit) }}"
       aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-      key_name: "{{ cloud_instance_item.key_name | default(cloud_name) }}"
+      key_name: "{{ cloud_instance_item.key_name | default(cloud_key_name) }}"
       region: "{{ cloud_vpc_data.region }}"
       instance_type: "{{ cloud_instance_size }}"
       instance_tags: "{{ cloud_instance_item.tags|default({}) | combine(cloud_instance_tags) }}"

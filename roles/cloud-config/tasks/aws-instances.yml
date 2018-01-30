@@ -40,7 +40,7 @@
     aws_access_key: "{{ aws_access_key | default(omit) }}"
     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
     region: "{{ cloud_vpc_data.region }}"
-    name: "{{ cloud_name }}"
+    name: "{{ cloud_key_name }}"
     key_material: "{{ ssh_public_key_material }}"
     state: present
 

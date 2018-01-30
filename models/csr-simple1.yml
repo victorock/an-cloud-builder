@@ -61,7 +61,6 @@ vpc_list:
       - name: "host1.{{ cloud_name }}"
         size: medium
         image: rhel7
-        key_name: "{{ cloud_name }}"
         ansible_user: centos
         # volume_size: 20
         interfaces:
