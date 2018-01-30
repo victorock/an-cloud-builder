@@ -13,6 +13,11 @@
           - opt_model is defined
         msg: "You must specify a model"
 
+    - set_fact:
+        opt_provider: opt_provider_region.split('/')[0]
+        opt_region: opt_provider_region.split('/')[1]
+      when: opt_provider_region is defined
+
     - name: Read in the Cloud Model {{ opt_model }}
       include_vars:
         file: "{{ model_dir }}/{{ opt_model }}.yml"
