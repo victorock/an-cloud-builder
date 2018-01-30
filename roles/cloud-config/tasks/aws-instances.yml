@@ -41,7 +41,7 @@
     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
     region: "{{ cloud_vpc_data.region }}"
     name: "{{ cloud_name }}"
-    key_material: "{{ lookup('file', ansible_ssh_public_key_file) }}"
+    key_material: "{{ ssh_public_key_material }}"
     state: present
 
 - include: "{{ role_path }}/tasks/aws-instance.yml"

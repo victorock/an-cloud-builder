@@ -42,10 +42,10 @@
     model_dir: "{{ playbook_dir }}/models"
     inventory_root: "{{ playbook_dir }}/inventory }}"
     group_vars_root: "{{ playbook_dir }}/files/group_vars"
-    use_full_hostname: no
+    use_full_hostname: yes
   tasks:
     - set_fact:
-        full_hostname: "{{ inventory_hostname }}.{{ cloud_instance }}.{{ cloud_project }}"
+        hostname: "{{ inventory_hostname if (use_full_hostname|bool) else inventory_hostname.split('.')[0] }}"
 
     - name: Find tower.cfg
       set_fact:
@@ -62,8 +62,6 @@
         state: present
       delegate_to: localhost
       run_once: yes
-
-
 
     - debug: var=hostvars[inventory_hostname]
 
@@ -99,7 +97,7 @@
 
     - name: Add tower host
       tower_host:
-        name: "{{ full_hostname if use_full_hostname|bool else inventory_hostname }}"
+        name: "{{ hostname }}"
         inventory: "an-demo-kit"
         state: present
         variables:
@@ -110,6 +108,6 @@
       delegate_to: localhost
 
     - name: Add host to group
-      command: "tower-cli host associate --host {{ inventory_hostname|quote }} --group {{ item|quote }}"
+      command: "tower-cli host associate --host {{ hostname|quote }} --group {{ item|quote }}"
       with_items: "{{ group_names }}"
       delegate_to: localhost
