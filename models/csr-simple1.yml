@@ -1,12 +1,4 @@
 ---
-cloud_project: "{{ opt_project | default('csr_simple1') }}"
-cloud_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
-cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
-cloud_provider: "{{ opt_provider | default('aws') }}"
-cloud_region: "{{ opt_region | default('us-east-1') }}"
-cloud_user: ec2-user
-cloud_cidr: "{{ opt_cidr | default('10.1.0.0/16') }}"
-
 cloud_acls:
   host-acl:
     - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }
@@ -71,23 +63,6 @@ vpc_list:
         tags:
           Owner: "{{ cloud_name }}"
           groups: "hosts,{{ cloud_instance }}"
-group_vars:
-  all:
-    domain_name: localdomain
-    domain_search:
-      - localdomain
-      - example.com
-    name_servers:
-      - 8.8.8.8
-      - 8.8.4.4
-  control_nodes:
-    topo_checks:
-      - {src: 'control', dst: 'rtr1', proto: 'icmp'}
-      - {src: 'control', dst: 'rtr2', proto: 'icmp'}
-      - {src: 'rtr2', dst: 'host1', proto: 'icmp'}
-  routers:
-    network_tunnel_list:
-      - { index: 0, src_host: "rtr1", src_ip_addr: "10.255.0.1/30", dst_host: "rtr2", dst_ip_addr: "10.255.0.2/30" }
 
 cloud_image_map:
   aws:

@@ -28,6 +28,7 @@
     cloud_project: "{{ cloud_project }}"
     cloud_instance: "{{ cloud_instance }}"
     cloud_name: "{{ cloud_name }}"
+    cloud_model: "{{ cloud_model }}"
     cloud_template_item: "{{ cloud_instance_item }}"
     cloud_vpc_data: "{{ cloud_vpc_data }}"
-    ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
+    ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"

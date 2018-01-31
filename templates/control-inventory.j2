@@ -1,6 +1,6 @@
 {% for group in groups %}
 [{{ group }}]
 {% for host in groups[group] %}
-{{ host.split('.')[0] }} ansible_host={{ hostvars[host].ansible_host }} ansible_network_os={{ hostvars[host].ansible_network_os | default('none') }} ansible_ssh_user={{ hostvars[host].ansible_user }}
+{{ host.split('.')[0] }} ansible_host={{ hostvars[host].ansible_host }} ansible_network_os={{ hostvars[host].ansible_network_os | default('none') }} ansible_user={{ hostvars[host].ansible_user }}
 {% endfor %}
 {% endfor %}

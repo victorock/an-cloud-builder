@@ -7,7 +7,8 @@
     model_dir: "{{ playbook_dir }}/models"
     inventory_root: "{{ playbook_dir }}/inventory }}"
     group_vars_root: "{{ playbook_dir }}/files/group_vars"
-    use_full_hostname: no
+    use_full_hostname: yes
+    inventory_name: "{{ opt_inventory_name | default('an-demo-kit') }}"
 
   tasks:
     - assert:
@@ -31,22 +32,6 @@
       with_items: "{{ vpc_list | default([]) }}"
       loop_control:
         loop_var: vpc_item
-      delegate_to: localhost
-      run_once: yes
-
-- name: Create vars files
-  hosts: control,network
-  gather_facts: no
-  vars:
-    model_dir: "{{ playbook_dir }}/models"
-    inventory_root: "{{ playbook_dir }}/inventory }}"
-    group_vars_root: "{{ playbook_dir }}/files/group_vars"
-    use_full_hostname: yes
-    inventory_name: "{{ opt_inventory_name | default('an-demo-kit') }}"
-
-  tasks:
-    - set_fact:
-        hostname: "{{ inventory_hostname if (use_full_hostname|bool) else inventory_hostname.split('.')[0] }}"
 
     - name: Find tower.cfg
       set_fact:
@@ -55,14 +40,13 @@
         - files:
           - "{{ inventory_root }}/{{ cloud_project }}/tower_cli.cfg"
           - '~/.tower_cli.cfg'
+          - /etc/awx/tower_cli.cfg
 
     - name: Add tower inventory
       tower_inventory:
         name: "{{ inventory_name }}"
         organization: "ismc"
         state: present
-      delegate_to: localhost
-      run_once: yes
 
     - debug: var=hostvars[inventory_hostname]
 
@@ -73,42 +57,105 @@
         state: present
       with_dict: "{{ groups }}"
       when: item.key != 'all'
-      delegate_to: localhost
-      run_once: yes
-
-    - name: Check to see which group_vars file exists
-      stat:
-        path: "{{ group_vars_root }}/{{ item.key }}.yml"
-      register: stat_results
-      with_dict: "{{ groups }}"
-      delegate_to: localhost
-      run_once: yes
-
-    - debug: var=stat_results
-
-    - name: Add tower group variables
-      tower_group:
-        name: "{{ item.item.key }}"
-        inventory: "{{ inventory_name }}"
-        state: present
-        variables: "{{ lookup('file', item.invocation.module_args.path ) }}"
-      when: item.stat.exists
-      with_items: "{{ stat_results.results }}"
-      delegate_to: localhost
 
     - name: Add tower host
       tower_host:
-        name: "{{ hostname }}"
+        name: "{{ item.key }}"
         inventory: "{{ inventory_name }}"
         state: present
         variables:
-          ansible_host: "{{ ansible_host }}"
-          ansible_user: "{{ ansible_user }}"
-          ansible_network_os: "{{ ansible_network_os | default(omit) }}"
-          interfaces: "{{ interfaces | default(omit) }}"
-      delegate_to: localhost
+          ansible_host: "{{ item.value.ansible_host }}"
+          ansible_user: "{{ item.value.ansible_user }}"
+          ansible_network_os: "{{ item.value.ansible_network_os | default(omit) }}"
+          interfaces: "{{ item.value.interfaces | default(omit) }}"
+      with_dict: "{{ hostvars }}"
 
-    - name: Add host to group
-      command: "tower-cli host associate --host {{ hostname|quote }} --group {{ item|quote }}"
-      with_items: "{{ group_names }}"
-      delegate_to: localhost
+    - debug: var=item
+      with_nested:
+        - "{{ hostvars[item.0].group_names }}"
+        - "{{ hostvars.keys() }}"
+
+    # - name: Add host to group
+    #   command: "tower-cli host associate --host {{ hostname|quote }} --group {{ item|quote }}"
+    #   with_items: "{{ group_names }}"
+
+    - debug: var=hostvars
+#
+# - name: Create vars files
+#   hosts: control,network
+#   gather_facts: no
+#   vars:
+#     model_dir: "{{ playbook_dir }}/models"
+#     inventory_root: "{{ playbook_dir }}/inventory }}"
+#     group_vars_root: "{{ playbook_dir }}/files/group_vars"
+#     use_full_hostname: yes
+#     inventory_name: "{{ opt_inventory_name | default('an-demo-kit') }}"
+#
+#   tasks:
+#     - set_fact:
+#         hostname: "{{ inventory_hostname if (use_full_hostname|bool) else inventory_hostname.split('.')[0] }}"
+#
+#     - name: Find tower.cfg
+#       set_fact:
+#         tower_config_file: "{{ item }}"
+#       with_first_found:
+#         - files:
+#           - "{{ inventory_root }}/{{ cloud_project }}/tower_cli.cfg"
+#           - '~/.tower_cli.cfg'
+#
+#     - name: Add tower inventory
+#       tower_inventory:
+#         name: "{{ inventory_name }}"
+#         organization: "ismc"
+#         state: present
+#       delegate_to: localhost
+#       run_once: yes
+#
+#     - debug: var=hostvars[inventory_hostname]
+#
+#     - name: Add tower group
+#       tower_group:
+#         name: "{{ item.key }}"
+#         inventory: "{{ inventory_name }}"
+#         state: present
+#       with_dict: "{{ groups }}"
+#       when: item.key != 'all'
+#       delegate_to: localhost
+#       run_once: yes
+#
+#     - name: Check to see which group_vars file exists
+#       stat:
+#         path: "{{ group_vars_root }}/{{ item.key }}.yml"
+#       register: stat_results
+#       with_dict: "{{ groups }}"
+#       delegate_to: localhost
+#       run_once: yes
+#
+#     - debug: var=stat_results
+#
+#     - name: Add tower group variables
+#       tower_group:
+#         name: "{{ item.item.key }}"
+#         inventory: "{{ inventory_name }}"
+#         state: present
+#         variables: "{{ lookup('file', item.invocation.module_args.path ) }}"
+#       when: item.stat.exists
+#       with_items: "{{ stat_results.results }}"
+#       delegate_to: localhost
+#
+#     - name: Add tower host
+#       tower_host:
+#         name: "{{ hostname }}"
+#         inventory: "{{ inventory_name }}"
+#         state: present
+#         variables:
+#           ansible_host: "{{ ansible_host }}"
+#           ansible_user: "{{ ansible_user }}"
+#           ansible_network_os: "{{ ansible_network_os | default(omit) }}"
+#           interfaces: "{{ interfaces | default(omit) }}"
+#       delegate_to: localhost
+#
+#     - name: Add host to group
+#       command: "tower-cli host associate --host {{ hostname|quote }} --group {{ item|quote }}"
+#       with_items: "{{ group_names }}"
+#       delegate_to: localhost

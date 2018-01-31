@@ -6,61 +6,56 @@
     model_dir: "{{ playbook_dir }}/models"
     inventory_root: "{{ playbook_dir }}/inventory"
     key_root: "{{ playbook_dir }}/keys"
+    cloud_instance: "{{ cloud_model.split('.')[0] }}"
+    cloud_project: "{{ lookup('env','USER') }}"
+    cloud_provider: 'aws'
+    cloud_region: 'us-east-1'
+    cloud_user: ec2-user
+    cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
+    cloud_key_name: "{{ opt_key_name | default(cloud_name) }}"
+    cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
+    cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
+    cloud_cidr: '10.1.0.0/16'
 
   tasks:
     - assert:
         that:
-          - opt_model is defined
-        msg: "You must specify a model"
+          - cloud_model is defined
+        msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
 
     - set_fact:
-        opt_provider: "{{ opt_provider_region.split('/')[0] }}"
-        opt_region: "{{ opt_provider_region.split('/')[1] }}"
+        cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
+        cloud_region: "{{ opt_provider_region.split('/')[1] }}"
       when: opt_provider_region is defined
 
-    - name: Read in the Cloud Model {{ opt_model }}
-      include_vars:
-        file: "{{ model_dir }}/{{ opt_model }}.yml"
-
-    - set_fact:
-        cloud_key_name: "{{ cloud_key_name | default(cloud_name) }}"
-
     - block:
-      - block:
-        - set_fact:
-            ansible_ssh_private_key_file: "{{ key_root }}/{{ cloud_key_name }}_key"
-            ansible_ssh_public_key_file: "{{ key_root }}/{{ cloud_key_name }}_key.pub"
-
         - name: Create the keys directory
           file:
-            path: keys
+            path: "{{ key_root }}"
             state: directory
             mode: 0755
 
         - openssl_privatekey:
-            path: "{{ ansible_ssh_private_key_file }}"
+            path: "{{ cloud_private_key_file }}"
             type: RSA
             size: 2048
-          delegate_to: localhost
-          run_once: yes
           register: key_results
 
         - openssl_publickey:
-            path: "{{ ansible_ssh_public_key_file }}"
-            privatekey_path: "{{ ansible_ssh_private_key_file }}"
+            path: "{{ cloud_public_key_file }}"
+            privatekey_path: "{{ cloud_private_key_file }}"
             format: OpenSSH
             force: no
-          delegate_to: localhost
-          run_once: yes
           when: key_results.changed
           register: public_key_results
-        when: ansible_ssh_public_key_file is not defined
 
-      - set_fact:
-          ssh_public_key_material: "{{ lookup('file', ansible_ssh_public_key_file) }}"
-      when: ssh_public_key_material is not defined
+        - set_fact:
+            cloud_public_key_material: "{{ lookup('file', cloud_public_key_file) }}"
+      when: cloud_public_key_material is not defined
 
-    - debug: var=public_key_results
+    - name: Read in the Cloud Model {{ cloud_model }}
+      include_vars:
+        file: "{{ model_dir }}/{{ cloud_model }}"
 
     - include_role:
         name: cloud-config
@@ -70,5 +65,4 @@
       with_items: "{{ vpc_list | default([]) }}"
       loop_control:
         loop_var: vpc_item
-      delegate_to: localhost
       run_once: yes

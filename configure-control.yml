@@ -1,45 +1,55 @@
 ---
-- name: Get the cloud facts
-  hosts: localhost
-  gather_facts: no
-  vars:
-    model_dir: "{{ playbook_dir }}/models"
-    inventory_root: "{{ playbook_dir }}/inventory }}"
-    group_vars_root: "{{ playbook_dir }}/files/group_vars"
-    use_full_hostname: no
-
-  tasks:
-    - assert:
-        that:
-          - opt_model is defined
-        msg: "You must specify a model"
-
-    - name: Read in the Cloud Model {{ opt_model }}
-      include_vars:
-        file: "{{ model_dir }}/{{ opt_model }}.yml"
-
-    - set_fact:
-        ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
-        ansible_ssh_public_key_file: "keys/{{ cloud_name }}_key.pub"
-
-    - include_role:
-        name: cloud-facts
-      vars:
-        - cloud_vpc_name: "{{ vpc_item.name }}"
-        - cloud_vpc_data: "{{ vpc_item }}"
-      with_items: "{{ vpc_list | default([]) }}"
-      loop_control:
-        loop_var: vpc_item
-      delegate_to: localhost
-      run_once: yes
-
-    - debug: var=hostvars[inventory_hostname]
+# - name: Get the cloud facts
+#   hosts: localhost
+#   gather_facts: no
+#   vars:
+#     model_dir: "{{ playbook_dir }}/models"
+#     inventory_root: "{{ playbook_dir }}/inventory"
+#     key_root: "{{ playbook_dir }}/keys"
+#     cloud_instance: "{{ cloud_model.split('.')[0] }}"
+#     cloud_project: "{{ lookup('env','USER') }}"
+#     cloud_provider: 'aws'
+#     cloud_region: 'us-east-1'
+#     cloud_user: ec2-user
+#     cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
+#     cloud_key_name: "{{ cloud_name }}"
+#     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
+#     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
+#     cloud_cidr: '10.1.0.0/16'
+#     group_vars_root: "{{ playbook_dir }}/files/group_vars"
+#     use_full_hostname: no
+#
+#   tasks:
+#     - assert:
+#         that:
+#           - cloud_model is defined
+#         msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
+#
+#     - set_fact:
+#         cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
+#         cloud_region: "{{ opt_provider_region.split('/')[1] }}"
+#       when: opt_provider_region is defined
+#
+#     - name: Read in the Cloud Model {{ cloud_model }}
+#       include_vars:
+#         file: "{{ model_dir }}/{{ cloud_model }}"
+#
+#     - include_role:
+#         name: cloud-facts
+#       vars:
+#         - cloud_vpc_name: "{{ vpc_item.name }}"
+#         - cloud_vpc_data: "{{ vpc_item }}"
+#       with_items: "{{ vpc_list | default([]) }}"
+#       loop_control:
+#         loop_var: vpc_item
+#
+#     - debug: var=hostvars[inventory_hostname]
 
 - name: Create vars files
   hosts: control_hosts
   become: yes
   vars:
-    demo_kit_root: '/var/lib/awx/projects/an-demo-kit'
+    demo_kit_root: '~labuser/an-demo-kit'
     lab_username: 'labuser'
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
     use_ansible_devel: no
@@ -83,8 +93,9 @@
     - include_role:
         name: ansible-tower
       vars:
-        ansible_tower_version: 3.2.2
+        ansible_tower_version: '3.2.2-1'
       when: (install_tower|bool)
+      become: yes
       tags:
         - tower
 
@@ -126,11 +137,11 @@
         state: present
       with_items: "{{ groups.all }}"
 
-    - name: Create the keys directory
-      file:
-        path: /var/lib/awx/projects
-        state: directory
-        mode: 0755
+    # - name: Create the keys directory
+    #   file:
+    #     path: /var/lib/awx/projects
+    #     state: directory
+    #     mode: 0755
 
     - name: Install the an-demo-kit
       git:
@@ -151,12 +162,12 @@
         - "{{ demo_kit_root }}/inventory/host_vars"
         - "{{ demo_kit_root }}/inventory/group_vars"
 
-    - name: Create a symlink to the repo in {{ lab_username }}' home
-      file:
-        src: "{{ demo_kit_root }}"
-        dest: "~{{ lab_username }}/an-demo-kit"
-        owner: "{{ lab_username }}"
-        state: link
+    # - name: Create a symlink to the repo in {{ lab_username }}' home
+    #   file:
+    #     src: "{{ demo_kit_root }}"
+    #     dest: "~{{ lab_username }}/an-demo-kit"
+    #     owner: "{{ lab_username }}"
+    #     state: link
 
     - name: Create the inventory file on the control node(s)
       template:

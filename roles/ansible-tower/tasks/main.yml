@@ -1,21 +1,21 @@
 ---
 - name: Download Ansible Tower
   unarchive:
-    src: "http://releases.ansible.com/ansible-tower/setup/ansible-tower-setup-{{ ansible_tower_version }}.tar.gz"
+    src: "https://releases.ansible.com/ansible-tower/setup-bundle/ansible-tower-setup-bundle-{{ ansible_tower_version }}.el7.tar.gz"
     remote_src: yes
     dest: "{{ ansible_tower_tmp }}"
-    creates: "{{ ansible_tower_tmp }}/ansible-tower-setup-{{ ansible_tower_version }}/setup.sh"
+    creates: "{{ ansible_tower_tmp }}/ansible-tower-setup-bundle-{{ ansible_tower_version }}.el7/setup.sh"
 
 - name: Create inventory file
   template:
     src: inventory.j2
-    dest: "{{ ansible_tower_tmp }}/ansible-tower-setup-{{ ansible_tower_version }}/inventory"
+    dest: "{{ ansible_tower_tmp }}/ansible-tower-setup-bundle-{{ ansible_tower_version }}.el7/inventory"
 
 - name: Execute installation
   command: './setup.sh'
   become: yes
   args:
-    chdir: "{{ ansible_tower_tmp }}/ansible-tower-setup-{{ ansible_tower_version }}"
+    chdir: "{{ ansible_tower_tmp }}/ansible-tower-setup-bundle-{{ ansible_tower_version }}.el7"
 
 - name: Install Tower license
   become: yes

@@ -61,6 +61,9 @@
           Name: "{{ cloud_instance_item.name }}"
           Environment: "{{ cloud_vpc_data.project }}"
           Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
+          cloud_project: "{{ cloud_project }}"
+          cloud_instance: "{{ cloud_instance }}"
+          cloud_name: "{{ cloud_name }}"
 
   - name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
     ec2:

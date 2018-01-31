@@ -20,28 +20,13 @@
   loop_control:
     loop_var: instance_facts_item
 
-# - name: Create an EC2 key in {{ cloud_vpc_data.region }}
-#   ec2_key:
-#     aws_access_key: "{{ aws_access_key | default(omit) }}"
-#     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
-#     name: "{{ cloud_name }}"
-#     region: "{{ cloud_vpc_data.region }}"
-#   register: ec2_key
-#
-# - name: save private key to {{ ansible_ssh_private_key_file }}
-#   copy:
-#     content: "{{ ec2_key.key.private_key }}"
-#     dest: "{{ ansible_ssh_private_key_file }}"
-#     mode: 0600
-#   when: ec2_key.changed
-
 - name: Create private key for {{ cloud_name }}
   ec2_key:
     aws_access_key: "{{ aws_access_key | default(omit) }}"
     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
     region: "{{ cloud_vpc_data.region }}"
     name: "{{ cloud_key_name }}"
-    key_material: "{{ ssh_public_key_material }}"
+    key_material: "{{ cloud_public_key_material }}"
     state: present
 
 - include: "{{ role_path }}/tasks/aws-instance.yml"
