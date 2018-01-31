@@ -1,0 +1,23 @@
+---
+- name: Get device facts
+  ios_facts:
+
+- name: Create the device specific ios_banner
+  set_fact:
+    motd_banner: "{{ lookup('template', 'motd.j2') }}"
+
+- debug: var=motd_banner
+
+- name: configure the login banner
+  ios_banner:
+    banner: login
+    text: "{{ network_banner }}"
+    state: present
+  when: network_banner is defined
+
+- name: configure the MOTD
+  ios_banner:
+    banner: motd
+    text: "{{ motd_banner }}"
+    state: present
+  when: motd_banner is defined

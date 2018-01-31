@@ -1,0 +1,16 @@
+---
+- name: configure the login banner
+  junos_banner:
+    banner: login
+    text: "{{ network_banner }}"
+    state: present
+  when: network_banner is defined
+  connection: netconf
+
+- name: configure the MOTD
+  junos_banner:
+    banner: motd
+    text: "{{ network_motd }}"
+    state: present
+  when: network_motd is defined
+  connection: netconf
