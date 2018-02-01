@@ -55,14 +55,14 @@
 
     - name: Add tower inventory
       tower_inventory:
-        name: "{{ inventory_name }}"
+        name: "{{ cloud_project }}"
         organization: "ismc"
         state: present
 
     - name: Add tower groups
       tower_group:
         name: "{{ item.key }}"
-        inventory: "{{ inventory_name }}"
+        inventory: "{{ cloud_project }}"
         state: present
       with_dict: "{{ groups }}"
       when: item.key != 'all'
@@ -135,7 +135,7 @@
     - name: Add tower host
       tower_host:
         name: "{{ hostname }}"
-        inventory: "{{ inventory_name }}"
+        inventory: "{{ cloud_project }}"
         state: present
         variables:
           ansible_host: "{{ ansible_host }}"
