@@ -1,4 +1,7 @@
 ---
+- name: Get device facts
+  ios_facts:
+
 - name: configure the login banner
   junos_banner:
     banner: login
@@ -10,7 +13,6 @@
 - name: configure the MOTD
   junos_banner:
     banner: motd
-    text: "{{ network_motd }}"
+    text: "{{ lookup('template', 'motd.j2') }}"
     state: present
-  when: network_motd is defined
   connection: netconf

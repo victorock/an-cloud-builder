@@ -5,20 +5,33 @@
   gather_facts: False
   vars:
     model_dir: "{{ playbook_dir }}/models"
-    inventory_root: ./inventory
+    inventory_root: "{{ playbook_dir }}/inventory"
+    key_root: "{{ playbook_dir }}/keys"
+    cloud_instance: "{{ cloud_model.split('.')[0] }}"
+    cloud_project: "{{ lookup('env','USER') }}"
+    cloud_provider: 'aws'
+    cloud_region: 'us-east-1'
+    cloud_user: ec2-user
+    cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
+    cloud_key_name: "{{ cloud_name }}"
+    cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
+    cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
+    cloud_cidr: '10.1.0.0/16'
 
   tasks:
-    - debug: msg="Must specify a model"
-      when: opt_model is not defined
-      failed_when: opt_model is not defined
-
-    - name: Read in the Cloud Model {{ opt_model }}
-      include_vars:
-        file: "{{ model_dir }}/{{ opt_model }}.yml"
+    - assert:
+        that:
+          - cloud_model is defined
+        msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
 
     - set_fact:
-        ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
-        ansible_ssh_public_key_file: "keys/{{ cloud_name }}_key.pub"
+        cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
+        cloud_region: "{{ opt_provider_region.split('/')[1] }}"
+      when: opt_provider_region is defined
+
+    - name: Read in the Cloud Model {{ cloud_model }}
+      include_vars:
+        file: "{{ model_dir }}/{{ cloud_model }}"
 
     - include_role:
         name: cloud-facts
@@ -45,31 +58,26 @@
 
     - name: Create the inventory file on the local node
       template:
-        src: "{{ playbook_dir }}/templates/local-inventory.j2"
+        src: local-inventory.j2
         dest: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}"
 
 - name: Create vars files
-  hosts: network
+  hosts: "{{ cloud_name }}"
   gather_facts: no
   vars:
-    inventory_root: ./inventory
+    inventory_root: "{{ playbook_dir }}/inventory"
     model_dir: "{{ playbook_dir }}/models"
+    cloud_instance: "{{ cloud_model.split('.')[0] }}"
+    cloud_project: "{{ lookup('env','USER') }}"
+    cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
 
   tasks:
-    - debug: var=hostvars[inventory_hostname]
-
-    - name: Read in the Cloud Model {{ opt_model }}
-      include_vars:
-        file: "{{ model_dir }}/{{ opt_model }}.yml"
-
     - name: Create the {{ inventory_hostname }} directory
       file:
         path: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ inventory_hostname }}.{{ cloud_instance }}"
         state: directory
         mode: 0755
       delegate_to: localhost
-
-    - debug: var=interfaces
 
     - name: Create the interfaces file for {{ inventory_hostname }}
       template:

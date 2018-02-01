@@ -16,12 +16,16 @@
   set_fact:
     instance_ip_address: "{{ instance_facts_item.public_ip_address | default(instance_facts_item.private_ip_address, true) }}"
 
+- set_fact:
+    instance_group_list: "{{ instance_facts_item.tags.groups.split(',') }}"
+  when: instance_facts_item.tags.groups is defined
+
 - name: Add host to inventory
   add_host:
     hostname: "{{ instance_facts_item.tags.Name }}"
     ansible_host: "{{ instance_ip_address }}"
     ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
-    groups: "{{ instance_facts_item.tags.groups | default(omit) }}"
+    groups: "{{ (instance_group_list + [ cloud_name ]) | join(',') }}"
     ansible_network_os: "{{ instance_facts_item.tags.network_os | default(omit) }}"
     private_ip_address: "{{ instance_facts_item.private_ip_address }}"
     interfaces: "{{ instance_interfaces }}"

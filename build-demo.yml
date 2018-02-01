@@ -23,8 +23,6 @@
           - cloud_model is defined
         msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
 
-    - debug: var=cloud_name
-
     - set_fact:
         cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
         cloud_region: "{{ opt_provider_region.split('/')[1] }}"

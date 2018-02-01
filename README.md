@@ -12,25 +12,40 @@ These playbooks assume that you have your cloud environment setup correctly for 
 git clone git@github.com:ismc/an-demo-kit.git
 ```
 
-Examples
+Usage
 --------
 
 To build the cloud given the model:
 
 ```
-ansible-playbook -e @model/csr-lab1.yml build-demo.yml
+ansible-playbook -e 'models/csr-lab1.yml' build-cloud.yml
 ```
 
-To destroy the cloud given the blueprint:
+To destroy the cloud given the model:
 
 ```
-ansible-playbook -e @model/csr-lab1.yml destroy-demo.yml
+ansible-playbook -e 'models/csr-lab1.yml' destroy-cloud.yml
+```
+
+The following options can be defined with `-e`:
+- `cloud_project`: The name of the overall project. (defaults to username)
+- `cloud_instance`: The specific instance of the overall project. (defaults to cloud_model)
+- `cloud_provider`: The cloud provider in which to deploy the model. (defaults to aws)
+- `cloud_region`: The region of the cloud provider in which to deploy the model (defaults to us-east-1)
+
+`cloud_name` is derived from `cloud_project` + `cloud_instance` and used to identify
+that deployment.
+
+To create a local inventory of the newly deployed cloud:
+
+```
+ansible-playbook -e 'models/csr-lab1.yml' local-inventory.yml
 ```
 
 To configure the control node (install Ansible, setup Ansible Inventory, etc)
 
 ```
-ansible-playbook -e @models/csr-lab1.yml configure-control.yml
+ansible-playbook -i inventory<cloud_project>/<cloud_instance> configure-control.yml
 ```
 
 - If you want to deploy tower on the control node, add `-e 'install_tower=yes'`
@@ -123,10 +138,10 @@ In order to run the example playbooks, create an inventory directory using
 command:
 
 ```
-ansible-playbook -i inventory network/network-facts.yml
+ansible-playbook -i inventory/<cloud_project>/<cloud_instance> network/network-facts.yml
 ```
 
-`-i inventory/example` tells ansible-playbook where to look for the inventory.
+`-i inventory/<cloud_project>/<cloud_instance>` tells ansible-playbook where to look for the inventory.
 
 
 License

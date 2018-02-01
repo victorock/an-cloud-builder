@@ -1,6 +1,6 @@
 {% for group in groups %}
 [{{ group }}]
 {% for host in groups[group] %}
-{{ host }} ansible_host={{ hostvars[host].ansible_host }} ansible_network_os={{ hostvars[host].ansible_network_os | default('none') }} ansible_ssh_user={{ hostvars[host].ansible_user }} ansible_ssh_private_key_file={{ cloud_private_key_file }}
+{{ host }} ansible_host={{ hostvars[host].ansible_host }} ansible_network_os={{ hostvars[host].ansible_network_os | default('none') }} ansible_user={{ hostvars[host].ansible_user }} ansible_ssh_private_key_file={{ cloud_private_key_file }}
 {% endfor %}
 {% endfor %}
