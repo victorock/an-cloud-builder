@@ -1,6 +1,6 @@
 ---
 - set_fact:
-    net_backup_dir: "{{ inventory_dir }}/backups"
+    net_backup_dir: "{{ playbook_dir }}/backups"
   when: net_backup_dir is not defined
 
 - set_fact:
