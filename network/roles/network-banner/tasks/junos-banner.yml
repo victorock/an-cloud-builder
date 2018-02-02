@@ -1,6 +1,7 @@
 ---
 - name: Get device facts
-  ios_facts:
+  junos_facts:
+  connection: netconf
 
 - name: configure the login banner
   junos_banner:

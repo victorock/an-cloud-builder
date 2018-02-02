@@ -1,9 +1,5 @@
 - hosts: switches
   gather_facts: no
   connection: network_cli
-
-  tasks:
-    - name: Update VLAN
-      net_vlan:
-        aggregate: "{{ vlan_list }}"
-      when: vlan_list is defined
+  roles:
+    - network-vlans

@@ -15,17 +15,10 @@
 
 - name: configure hostname and domain name
   junos_system:
-    hostname: "{{ system_hostname }}"
-    #domain_name: "{{ domain_search | default(omit) }}"
-    domain_search: "{{ domain_search | default(omit) }}"
-    lookup_source: "{{ lookup_source | default(omit) }}"
-    name_servers: "{{ name_servers | default(omit) }}"
+    hostname: "{{ inventory_hostname }}"
+    domain_name: "{{ dns_domain_name | default(omit) }}"
+    domain_search: "{{ dns_domain_search | default(omit) }}"
+    lookup_source: "{{ dns_lookup_source | default(omit) }}"
+    lookup_enabled: "{{ dns_lookup_enabled | default(omit) }}"
+    name_servers: "{{ dns_name_servers | default(omit) }}"
   connection: netconf
-
-- name: configure the login banner
-  junos_banner:
-    banner: login
-    text: "{{ network_banner }}"
-    state: present
-  connection: netconf
-  when: network_banner is defined

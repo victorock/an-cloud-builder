@@ -2,7 +2,6 @@
 - hosts: network
   connection: local
   gather_facts: no
-
-  tasks:
-    - include_role:
-        name: network-system
+  roles:
+    - network-dns
+    - network-banner
