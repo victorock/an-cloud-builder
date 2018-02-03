@@ -61,13 +61,12 @@
 
     - name: Add tower groups
       tower_group:
-        name: "{{ item.key }}"
+        name: "{{ item }}"
         inventory: "{{ cloud_project }}"
         state: present
-      with_dict: "{{ groups }}"
-      when: item.key != 'all'
+      with_items: "{{ group_names }}"
 
-- name: Create vars files
+- name: Add hosts to Tower inventory
   hosts: "{{ cloud_name }}"
   gather_facts: no
   vars:
@@ -76,6 +75,7 @@
     cloud_instance: "{{ cloud_model.split('.')[0] }}"
     cloud_project: "{{ lookup('env','USER') }}"
     cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
+    use_full_hostname: yes
 
   tasks:
     - set_fact:
