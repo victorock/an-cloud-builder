@@ -18,16 +18,17 @@ Usage
 To build the cloud given the model:
 
 ```
-ansible-playbook -e 'models/csr-lab1.yml' build-cloud.yml
+ansible-playbook -e 'cloud_model=csr-lab1.yml' build-cloud.yml
 ```
 
 To destroy the cloud given the model:
 
 ```
-ansible-playbook -e 'models/csr-lab1.yml' destroy-cloud.yml
+ansible-playbook -e 'cloud_model=csr-lab1.yml' destroy-cloud.yml
 ```
 
 The following options can be defined with `-e`:
+- `cloud_model`: The cloud model that you want to deploy into the specified cloud provider (required)
 - `cloud_project`: The name of the overall project. (defaults to username)
 - `cloud_instance`: The specific instance of the overall project. (defaults to cloud_model)
 - `cloud_provider`: The cloud provider in which to deploy the model. (defaults to aws)
@@ -36,19 +37,21 @@ The following options can be defined with `-e`:
 `cloud_name` is derived from `cloud_project` + `cloud_instance` and used to identify
 that deployment.
 
+Note: The same arguments from the build-cloud invocation need to be specified to the following commands.
+
 To create a local inventory of the newly deployed cloud:
 
 ```
-ansible-playbook -e 'models/csr-lab1.yml' local-inventory.yml
+ansible-playbook -e 'cloud_model=csr-lab1.yml' local-inventory.yml
 ```
 
 To configure the control node (install Ansible, setup Ansible Inventory, etc)
 
 ```
-ansible-playbook -i inventory<cloud_project>/<cloud_instance> configure-control.yml
+ansible-playbook -e 'cloud_model=csr-lab1.yml' configure-control.yml
 ```
 
-- If you want to deploy tower on the control node, add `-e 'install_tower=yes'`
+- If you want to deploy tower on the control node, add `--skip-tags=tower`
 
 - If you want to deploy with the Ansible devel branch, add `-e 'use_ansible_devel=yes'`.  This will also disable installing tower.
 

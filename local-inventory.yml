@@ -79,7 +79,7 @@
   tasks:
     - name: Create the {{ inventory_hostname }} directory
       file:
-        path: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ inventory_hostname }}.{{ cloud_instance }}"
+        path: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ inventory_hostname }}"
         state: directory
         mode: 0755
       delegate_to: localhost
@@ -87,6 +87,6 @@
     - name: Create the interfaces file for {{ inventory_hostname }}
       template:
         src: local-interfaces.j2
-        dest: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ inventory_hostname }}.{{ cloud_instance }}/interfaces.yml"
+        dest: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ inventory_hostname }}/interfaces.yml"
       delegate_to: localhost
       when: interfaces is defined

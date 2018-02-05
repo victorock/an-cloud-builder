@@ -6,7 +6,7 @@
   vars:
     pool_name: http-pool
     pool_partition: Common
-    vs_name: "{{ http-pool }}"
+    vs_name: "{{ pool_name }}"
     vs_port: 80
 
   tasks:

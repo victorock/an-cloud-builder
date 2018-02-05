@@ -83,17 +83,107 @@
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
     cloud_cidr: '10.1.0.0/16'
     demo_kit_root: '~labuser/an-demo-kit'
-    lab_username: 'labuser'
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
+    lab_username: 'labuser'
     use_ansible_devel: no
-
-
 
   tasks:
     # - name: Update all packages
     #   yum:
     #     name: '*'
     #     state: latest
+
+    - name: Create the lab user
+      user:
+        name: "{{ lab_username }}"
+        comment: "Lab User"
+        password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
+        uid: 2000
+        group: wheel
+
+    - name: Allow 'wheel' group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%wheel'
+        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+
+    - name: Create the .ssh directory
+      file:
+        path: "~{{ lab_username }}/.ssh"
+        state: directory
+        owner: "{{ lab_username }}"
+        mode: 0700
+
+    - name: Copy the ssh private key
+      copy:
+        src: "{{ ansible_ssh_private_key_file }}"
+        dest: "~{{ lab_username }}/.ssh/id_rsa"
+        owner: "{{ lab_username }}"
+        mode: 0600
+
+    - name: Copy the ssh public key
+      copy:
+        src: "{{ ansible_ssh_private_key_file }}.pub"
+        dest: "~{{ lab_username }}/.ssh/id_rsa.pub"
+        owner: "{{ lab_username }}"
+        mode: 0600
+
+    - name: create the ~/.ansible.cfg
+      blockinfile:
+        path: "~{{ lab_username }}/.ansible.cfg"
+        create: yes
+        owner: "{{ lab_username }}"
+        block: |
+          [defaults]
+          host_key_checking = False
+
+    - name: Allow password authentication
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PasswordAuthentication"
+                  line="PasswordAuthentication yes"
+                  state=present
+      become: yes
+      notify: Restart sshd
+
+    - name: Disable certificate checking for Python
+      lineinfile:
+        dest: "~{{ lab_username }}/.bash_profile"
+        line: "export PYTHONHTTPSVERIFY=0"
+
+    - name: Check to see if the .tower_cli.cfg exists
+      stat:
+        path: "~{{ lab_username }}/.tower_cli.cfg"
+      register: stat_results
+      become_user: "{{ lab_username }}"
+
+    - name: create the ~/.tower_cli.cfg
+      blockinfile:
+        path: "~{{ lab_username }}/.tower_cli.cfg"
+        create: yes
+        owner: "{{ lab_username }}"
+        block: |
+          host: localhost
+          username: admin
+          password: "{{ ansible_tower_admin_pass }}"
+      when: stat_results.stat.exists == false
+      become_user: "{{ lab_username }}"
+
+    # - name: Get the password that we've previously specified for Tower
+    #   slurp:
+    #     src: "~{{ lab_username }}/.tower_cli.cfg"
+    #   register: tower_creds
+    #   become_user: "{{ lab_username }}"
+    #
+    # - debug: msg="{{ tower_creds['content'] | b64decode }}"
+    #
+    # - set_fact:
+    #     tower_creds: "{{ tower_creds['content'] | b64decode | to_yaml }}"
+    #
+    # - debug: var=tower_creds
+    #
+    # - meta: end_play
 
     - name: Add EPEL repository
       yum_repository:
@@ -136,14 +226,6 @@
         name: git+git://github.com/ansible/ansible.git
         state: latest
       when: use_ansible_devel|bool
-
-    - name: Create the lab user
-      user:
-        name: "{{ lab_username }}"
-        comment: "Lab User"
-        password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
-        uid: 2000
-        group: wheel
 
     - name: Install PIP packages
       pip:
@@ -253,6 +335,18 @@
       when: hostvars[item].interfaces is defined
       with_items: "{{ groups.network }}"
 
+    - name: Add the inventory changes
+      command: git add inventory
+      args:
+        chdir: "{{ demo_kit_root }}"
+      become_user: "{{ lab_username }}"
+
+    - name: Commit the inventory changes
+      command: git commit -a -m "Added inventory"
+      args:
+        chdir: "{{ demo_kit_root }}"
+      become_user: "{{ lab_username }}"
+
     - name: Add tower git credential
       tower_credential:
         name: git
@@ -278,67 +372,6 @@
       become_user: "{{ lab_username }}"
       tags:
         - tower
-
-    - name: Allow 'wheel' group to have passwordless sudo
-      lineinfile:
-        dest: /etc/sudoers
-        state: present
-        regexp: '^%wheel'
-        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
-        validate: 'visudo -cf %s'
-
-    - name: Create the .ssh directory
-      file:
-        path: "{{ lab_username }}/.ssh"
-        state: directory
-        owner: "{{ lab_username }}"
-        mode: 0700
-
-    - name: Copy the ssh private key
-      copy:
-        src: "{{ ansible_ssh_private_key_file }}"
-        dest: "~{{ lab_username }}/.ssh/id_rsa"
-        owner: "{{ lab_username }}"
-        mode: 0600
-
-    - name: Copy the ssh public key
-      copy:
-        src: "{{ ansible_ssh_private_key_file }}.pub"
-        dest: "~{{ lab_username }}/.ssh/id_rsa.pub"
-        owner: "{{ lab_username }}"
-        mode: 0600
-
-    - name: create the ~/.ansible.cfg
-      blockinfile:
-        path: "~{{ lab_username }}/.ansible.cfg"
-        create: yes
-        owner: "{{ lab_username }}"
-        block: |
-          [defaults]
-          host_key_checking = False
-
-    - name: create the ~/.tower_cli.cfg
-      blockinfile:
-        path: "~{{ lab_username }}/.tower_cli.cfg"
-        create: yes
-        owner: "{{ lab_username }}"
-        block: |
-          host: localhost
-          username: admin
-          password: "{{ ansible_tower_admin_pass }}"
-
-    - name: Allow password authentication
-      lineinfile: dest=/etc/ssh/sshd_config
-                  regexp="^PasswordAuthentication"
-                  line="PasswordAuthentication yes"
-                  state=present
-      become: yes
-      notify: Restart sshd
-
-    - name: Disable certificate checking for Python
-      lineinfile:
-        dest: "~{{ lab_username }}/.bash_profile"
-        line: "export PYTHONHTTPSVERIFY=0"
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
 

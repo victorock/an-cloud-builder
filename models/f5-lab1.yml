@@ -1,12 +1,4 @@
 ---
-demo_name: "{{ opt_name | default('f5-lab1') }}"
-demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
-cloud_name: "{{ demo_name }}.{{ demo_instance }}"
-cloud_provider: aws
-cloud_region: us-east-1
-cloud_user: ec2-user
-ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
-
 cloud_acls:
   apphost-acl:
     - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }
@@ -20,14 +12,20 @@ vpc_list:
     provider: "{{ cloud_provider }}"
     region: "{{ cloud_region }}"
     project: "{{ cloud_name }}"
-    cidr: 172.18.0.0/16
+    cidr: "{{ cloud_cidr }}"
     acl_list:
       - apphost-acl
       - f5-acl
     networks:
-      - { name: "mgmt.{{ cloud_name }}", cidr: "172.18.0.0/24", az: "{{ cloud_region }}a" }
-      - { name: "outside.{{ cloud_name }}", cidr: "172.18.1.0/24", az: "{{ cloud_region }}a" }
-      - { name: "inside.{{ cloud_name }}", cidr: "172.18.2.0/24", az: "{{ cloud_region }}a" }
+      - name: "mgmt.vpc.{{ cloud_name }}"
+        cidr: "{{ cloud_cidr | ipsubnet(24, 0) }}"
+        az: "{{ cloud_region }}a"
+      - name: "outside.vpc.{{ cloud_name }}"
+        cidr: "{{ cloud_cidr | ipsubnet(24, 1) }}"
+        az: "{{ cloud_region }}a"
+      - name: "inside.vpc.{{ cloud_name }}"
+        cidr: "{{ cloud_cidr | ipsubnet(24, 2) }}"
+        az: "{{ cloud_region }}a"
     instances:
       - name: "control.{{ cloud_name }}"
         size: medium
@@ -36,12 +34,13 @@ vpc_list:
         key_name: "{{ cloud_name }}"
         interfaces:
           - name: eth0
-            subnet: "mgmt.{{ cloud_name }}"
+            subnet: "mgmt.vpc.{{ cloud_name }}"
             acl: apphost-acl
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 0) | ipaddr(10) | ipaddr('address') }}"
             public_ip: true
         tags:
           Owner: "{{ cloud_name }}"
-          groups: control
+          groups: control_hosts
       - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
@@ -49,12 +48,13 @@ vpc_list:
         key_name: "{{ cloud_name }}"
         interfaces:
           - name: eth0
-            subnet: "inside.{{ cloud_name }}"
+            subnet: "inside.vpc.{{ cloud_name }}"
             acl: apphost-acl
             public_ip: false
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(10) | ipaddr('address') }}"
         tags:
           Owner: "{{ cloud_name }}"
-          groups: webserver
+          groups: app_hosts
       - name: "host2.{{ cloud_name }}"
         size: micro
         image: centos7
@@ -62,12 +62,13 @@ vpc_list:
         key_name: "{{ cloud_name }}"
         interfaces:
           - name: eth0
-            subnet: "inside.{{ cloud_name }}"
+            subnet: "inside.vpc.{{ cloud_name }}"
             acl: apphost-acl
             public_ip: false
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(11) | ipaddr('address') }}"
         tags:
           Owner: "{{ cloud_name }}"
-          groups: webserver
+          groups: app_hosts
       - name: "f5.{{ cloud_name }}"
         size: medium
         image: f5-25-good
@@ -75,29 +76,23 @@ vpc_list:
         ansible_user: admin
         interfaces:
           - name: mgmt
-            subnet: "mgmt.{{ cloud_name }}"
+            subnet: "mgmt.vpc.{{ cloud_name }}"
             acl: f5-acl
-            private_ip: 172.18.0.254
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 0) | ipaddr(-2) | ipaddr('address') }}"
             public_ip: true
           - name: eth0
-            subnet: "outside.{{ cloud_name }}"
+            subnet: "outside.vpc.{{ cloud_name }}"
             acl: f5-acl
-            private_ip: 172.18.1.254
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 1) | ipaddr(-2) | ipaddr('address') }}"
             public_ip: true
           - name: eth1
-            subnet: "inside.{{ cloud_name }}"
+            subnet: "inside.vpc.{{ cloud_name }}"
             acl: f5-acl
-            private_ip: 172.18.2.254
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(-2) | ipaddr('address') }}"
         tags:
           Owner: "{{ cloud_name }}"
-          network_os: f5
-          groups: network,f5
-
-group_vars:
-  network:
-    network_username: admin
-    # Use Ansible Vault when encryption is required:
-    network_password: Cisc0123
+          network_os: tmos
+          groups: network,tmos
 
 cloud_image_map:
   aws:

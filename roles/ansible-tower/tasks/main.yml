@@ -10,9 +10,10 @@
   template:
     src: inventory.j2
     dest: "{{ ansible_tower_tmp }}/ansible-tower-setup-bundle-{{ ansible_tower_version }}.el7/inventory"
+    force: no
 
 - name: Execute installation
-  command: './setup.sh'
+  shell: './setup.sh'
   become: yes
   args:
     chdir: "{{ ansible_tower_tmp }}/ansible-tower-setup-bundle-{{ ansible_tower_version }}.el7"
