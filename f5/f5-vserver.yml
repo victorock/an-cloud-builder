@@ -3,14 +3,20 @@
   hosts: tmos
   connection: local
   gather_facts: False
+  vars:
+    pool_name: http-pool
+    pool_partition: Common
+    vs_name: "{{ http-pool }}"
+    vs_port: 80
+
   tasks:
-    - name: Create the http-pool pool
+    - name: Create the pool {{ pool_name }}
       bigip_pool:
         server: "{{ ansible_host }}"
         user: "{{ network_username }}"
         password: "{{ network_password }}"
         validate_certs: no
-        name: "http-pool"
+        name: "{{ pool_name }}"
 
     - name: Add a new node
       bigip_node:
@@ -19,7 +25,7 @@
         password: "{{ network_password }}"
         validate_certs: no
         state: "present"
-        partition: "Common"
+        partition: "{{ pool_partition }}"
         host: "{{ hostvars[item].ansible_host }}"
         name: "{{ hostvars[item].ansible_host }}"
       when: groups.app_hosts is defined
@@ -31,8 +37,8 @@
         user: "{{ network_username }}"
         password: "{{ network_password }}"
         validate_certs: no
-        pool: "http-pool"
-        partition: "Common"
+        pool: "{{ pool_name }}"
+        partition: "{{ pool_partition }}"
         host: "{{ hostvars[item].ansible_host }}"
         port: 80
         description: "web server"
@@ -47,10 +53,10 @@
         server: "{{ ansible_host }}"
         user: "{{ network_username }}"
         password: "{{ network_password }}"
-        name: "httpvs"
+        name: "{{ vs_name }}"
         destination: "{{ interfaces[1].private_ip_address }}"
-        port: 80
-        pool: "http-pool"
+        port: "{{ vs_port }}"
+        pool: "{{ pool_name }}"
         snat: Automap
         validate_certs: False
 

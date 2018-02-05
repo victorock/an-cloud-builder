@@ -93,6 +93,7 @@ vpc_list:
       - name: "pan.{{ cloud_name }}"
         size: xlarge
         image: pan-payg
+        ansible_user: admin
         interfaces:
           - name: mgmt
             subnet: "mgmt.{{ cloud_name }}"

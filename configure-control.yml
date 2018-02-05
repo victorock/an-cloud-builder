@@ -1,12 +1,93 @@
 ---
-- hosts: control_hosts
+- name: Read in the cloud inventory
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars:
+    model_dir: "{{ playbook_dir }}/models"
+    inventory_root: "{{ playbook_dir }}/inventory"
+    key_root: "{{ playbook_dir }}/keys"
+    cloud_instance: "{{ cloud_model.split('.')[0] }}"
+    cloud_project: "{{ lookup('env','USER') }}"
+    cloud_provider: 'aws'
+    cloud_region: 'us-east-1'
+    cloud_user: ec2-user
+    cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
+    cloud_key_name: "{{ cloud_name }}"
+    cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
+    cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
+    cloud_cidr: '10.1.0.0/16'
+
+  tasks:
+    - assert:
+        that:
+          - cloud_model is defined
+        msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
+
+    - set_fact:
+        cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
+        cloud_region: "{{ opt_provider_region.split('/')[1] }}"
+      when: opt_provider_region is defined
+
+    - name: Read in the Cloud Model {{ cloud_model }}
+      include_vars:
+        file: "{{ model_dir }}/{{ cloud_model }}"
+
+    - include_role:
+        name: cloud-facts
+      vars:
+        - cloud_vpc_name: "{{ vpc_item.name }}"
+        - cloud_vpc_data: "{{ vpc_item }}"
+      with_items: "{{ vpc_list | default([]) }}"
+      tasks_from: instances
+      loop_control:
+        loop_var: vpc_item
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Create the inventory directory
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0755
+      with_items:
+        - "{{ inventory_root }}"
+        - "{{ inventory_root }}/{{ cloud_project }}"
+        - "{{ inventory_root }}/{{ cloud_project }}/host_vars"
+        - "{{ inventory_root }}/{{ cloud_project }}/group_vars"
+
+    - name: Create the inventory file on the local node
+      template:
+        src: local-inventory.j2
+        dest: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}"
+
+    - name: Copy group_vars
+      copy:
+        src: group_vars
+        dest: "{{ inventory_root }}/{{ cloud_project }}"
+
+- hosts: "control_hosts:&{{ cloud_name }}"
   become: yes
   vars:
+    model_dir: "{{ playbook_dir }}/models"
+    inventory_root: "{{ playbook_dir }}/inventory"
+    key_root: "{{ playbook_dir }}/keys"
+    cloud_instance: "{{ cloud_model.split('.')[0] }}"
+    cloud_project: "{{ lookup('env','USER') }}"
+    cloud_provider: 'aws'
+    cloud_region: 'us-east-1'
+    cloud_user: ec2-user
+    cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
+    cloud_key_name: "{{ cloud_name }}"
+    cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
+    cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
+    cloud_cidr: '10.1.0.0/16'
     demo_kit_root: '~labuser/an-demo-kit'
     lab_username: 'labuser'
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
     use_ansible_devel: no
-    install_tower: no
+
+
 
   tasks:
     # - name: Update all packages
@@ -47,8 +128,6 @@
         name: ansible-tower
       vars:
         ansible_tower_version: '3.2.2-1'
-      when: (install_tower|bool)
-      become: yes
       tags:
         - tower
 
@@ -58,7 +137,8 @@
         state: latest
       when: use_ansible_devel|bool
 
-    - user:
+    - name: Create the lab user
+      user:
         name: "{{ lab_username }}"
         comment: "Lab User"
         password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
@@ -90,17 +170,47 @@
         state: present
       with_items: "{{ groups.all }}"
 
-    # - name: Create the keys directory
-    #   file:
-    #     path: /var/lib/awx/projects
-    #     state: directory
-    #     mode: 0755
+    - name: Create the git user
+      user:
+        name: git
+        comment: git
+        password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
+        uid: 2001
+        group: wheel
+
+    - name: Create the .ssh directory
+      file:
+        path: "~git/.ssh"
+        state: directory
+        owner: git
+        mode: 0700
+
+    - name: Create git user's authorized_keys
+      copy:
+        src: "{{ ansible_ssh_private_key_file }}.pub"
+        dest: "~git/.ssh/authorized_keys"
+        owner: git
+        mode: 0600
+
+    - name: Create the an-demo-kit local repo
+      command: git clone --bare https://github.com/ismc/an-demo-kit.git
+      args:
+        creates: /home/git/an-demo-kit.git/HEAD
+      become_user: git
 
     - name: Install the an-demo-kit
       git:
-        repo: https://github.com/ismc/an-demo-kit.git
+        repo: git@localhost:/home/git/an-demo-kit.git
         dest: "{{ demo_kit_root }}"
         force: yes
+      become_user: "{{ lab_username }}"
+
+    - name: Remove inventory from .gitignore
+      lineinfile:
+        path: "~{{ lab_username }}/an-demo-kit/.gitignore"
+        state: absent
+        regexp: 'inventory'
+      become_user: "{{ lab_username }}"
 
     - name: Create the inventory directory
       file:
@@ -110,17 +220,9 @@
         mode: 0755
         recurse: yes
       with_items:
-        - "{{ demo_kit_root }}"
         - "{{ demo_kit_root }}/inventory"
         - "{{ demo_kit_root }}/inventory/host_vars"
         - "{{ demo_kit_root }}/inventory/group_vars"
-
-    # - name: Create a symlink to the repo in {{ lab_username }}' home
-    #   file:
-    #     src: "{{ demo_kit_root }}"
-    #     dest: "~{{ lab_username }}/an-demo-kit"
-    #     owner: "{{ lab_username }}"
-    #     state: link
 
     - name: Create the inventory file on the control node(s)
       template:
@@ -128,17 +230,9 @@
         dest: "{{ demo_kit_root }}/inventory/hosts"
         owner: "{{ lab_username }}"
 
-    # - name: Create the group_vars files
-    #   copy:
-    #     dest: "{{ demo_kit_root }}/inventory/group_vars/{{ item.key }}.yml"
-    #     content: "{{ item.value | to_nice_yaml }}"
-    #     owner: "{{ lab_username }}"
-    #   with_dict: "{{ group_vars }}"
-    #   when: group_vars is defined
-
     - name: Create the group_vars files
       copy:
-        src: "{{ playbook_dir }}/files/group_vars"
+        src: group_vars
         dest: "{{ demo_kit_root }}/inventory"
         owner: "{{ lab_username }}"
 
@@ -159,18 +253,58 @@
       when: hostvars[item].interfaces is defined
       with_items: "{{ groups.network }}"
 
+    - name: Add tower git credential
+      tower_credential:
+        name: git
+        description: git
+        organization: Default
+        kind: scm
+        state: present
+        ssh_key_data: "~/.ssh/id_rsa"
+        tower_config_file: "~/.tower_cli.cfg"
+      become_user: "{{ lab_username }}"
+      tags:
+        - tower
+
+    - name: Add tower machine credential
+      tower_credential:
+        name: tower
+        description: tower
+        organization: Default
+        kind: ssh
+        state: present
+        ssh_key_data: "~/.ssh/id_rsa"
+        tower_config_file: "~/.tower_cli.cfg"
+      become_user: "{{ lab_username }}"
+      tags:
+        - tower
+
+    - name: Allow 'wheel' group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%wheel'
+        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+
     - name: Create the .ssh directory
       file:
-        path: "~{{ lab_username }}/.ssh"
+        path: "{{ lab_username }}/.ssh"
         state: directory
         owner: "{{ lab_username }}"
         mode: 0700
-        recurse: yes
 
-    - name: Copy the ssh key
+    - name: Copy the ssh private key
       copy:
         src: "{{ ansible_ssh_private_key_file }}"
         dest: "~{{ lab_username }}/.ssh/id_rsa"
+        owner: "{{ lab_username }}"
+        mode: 0600
+
+    - name: Copy the ssh public key
+      copy:
+        src: "{{ ansible_ssh_private_key_file }}.pub"
+        dest: "~{{ lab_username }}/.ssh/id_rsa.pub"
         owner: "{{ lab_username }}"
         mode: 0600
 
@@ -183,10 +317,9 @@
           [defaults]
           host_key_checking = False
 
-
-    - name: create the ~/.tower.cfg
+    - name: create the ~/.tower_cli.cfg
       blockinfile:
-        path: "~{{ lab_username }}/.tower.cfg"
+        path: "~{{ lab_username }}/.tower_cli.cfg"
         create: yes
         owner: "{{ lab_username }}"
         block: |
@@ -208,7 +341,6 @@
         line: "export PYTHONHTTPSVERIFY=0"
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
-
 
   handlers:
     - name: Restart sshd

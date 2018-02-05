@@ -1,14 +1,4 @@
 ---
-demo_name: "{{ opt_name | default('multi-lab1') }}"
-demo_instance: "{{ opt_instance | default(lookup('env','USER')) }}"
-cloud_name: "{{ demo_name }}.{{ demo_instance }}"
-cloud_provider1: aws
-cloud_region1: "{{ opt_region1 | default('us-east-1') }}"
-cloud_provider2: "{{ cloud_provider1 }}"
-cloud_region2: "{{ cloud_region1 }}"
-cloud_user: ec2-user
-ansible_ssh_private_key_file: "keys/{{ cloud_name }}_key"
-
 cloud_acls:
   host-acl:
     - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }

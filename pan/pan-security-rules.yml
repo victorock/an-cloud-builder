@@ -1,6 +1,6 @@
 ---
 - name: Configure PAN security rules
-  hosts: pan
+  hosts: panos
   connection: local
   gather_facts: False
 

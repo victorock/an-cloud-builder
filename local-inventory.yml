@@ -61,6 +61,11 @@
         src: local-inventory.j2
         dest: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}"
 
+    - name: Copy group_vars
+      copy:
+        src: group_vars
+        dest: "{{ inventory_root }}/{{ cloud_project }}"
+
 - name: Create vars files
   hosts: "{{ cloud_name }}"
   gather_facts: no
