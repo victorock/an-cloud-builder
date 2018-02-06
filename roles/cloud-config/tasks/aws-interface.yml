@@ -4,10 +4,10 @@
     aws_access_key: "{{ aws_access_key | default(omit) }}"
     aws_secret_key: "{{ aws_secret_key | default(omit) }}"
     # eni_id: "{{ existing_eni_list[cloud_interface_index].network_interface_id | default(omit) }}"
-    # instance_id: "{{ instance_facts.instance_id }}"
-    # attached: True
+    instance_id: "{{ instance_id }}"
+    attached: True
     region: "{{ cloud_vpc_data.region }}"
-    # device_index: "{{ cloud_interface_index }}"
+    device_index: "{{ cloud_interface_index }}"
     description: "{{ cloud_instance_item.name }}.{{cloud_interface_data.name }}"
     private_ip_address: "{{ cloud_interface_data.private_ip | default(omit) }}"
     subnet_id: "{{ subnet_map[cloud_interface_data.subnet] }}"
@@ -15,9 +15,9 @@
     security_groups: "{{ cloud_interface_data.acl | default(omit) }}"
   register: interface_facts
 
-- name: Add interface to cloud_interface_list
-  set_fact:
-    cloud_interface_list: "{{ cloud_interface_list + [interface_facts.interface.id] }}"
+# - name: Add interface to cloud_interface_list
+#   set_fact:
+#     cloud_interface_list: "{{ cloud_interface_list + [interface_facts.interface.id] }}"
 
 - name: Associate a public IP with interface {{ interface_facts.interface.id }} index {{ cloud_interface_index }}
   ec2_eip:
@@ -26,7 +26,7 @@
     region: "{{ cloud_vpc_data.region }}"
     device_id: "{{ interface_facts.interface.id }}"
     in_vpc: yes
-    ip: "{{ cloud_interface_data.public_ip if cloud_interface_data.public_ip | ipaddr else omit}}"
+    ip: "{{ cloud_interface_data.public_ip if (cloud_interface_data.public_ip | ipaddr) else omit}}"
     release_on_disassociation: yes
     reuse_existing_ip_allowed: yes
   when: cloud_interface_data.public_ip|default('no')|bool

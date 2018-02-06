@@ -151,6 +151,7 @@
         path: "~{{ lab_username }}/.tower_cli.cfg"
         create: yes
         owner: "{{ lab_username }}"
+        mode: 0600
         block: |
           host: localhost
           username: admin
@@ -335,31 +336,31 @@
         chdir: "{{ demo_kit_root }}"
       become_user: "{{ lab_username }}"
 
-    - name: Add tower git credential
-      tower_credential:
-        name: git
-        description: git
-        organization: Default
-        kind: scm
-        state: present
-        ssh_key_data: "~/.ssh/id_rsa"
-        tower_config_file: "~/.tower_cli.cfg"
-      become_user: "{{ lab_username }}"
-      tags:
-        - tower
-
-    - name: Add tower machine credential
-      tower_credential:
-        name: tower
-        description: tower
-        organization: Default
-        kind: ssh
-        state: present
-        ssh_key_data: "~/.ssh/id_rsa"
-        tower_config_file: "~/.tower_cli.cfg"
-      become_user: "{{ lab_username }}"
-      tags:
-        - tower
+    # - name: Add tower git credential
+    #   tower_credential:
+    #     name: git
+    #     description: git
+    #     organization: Default
+    #     kind: scm
+    #     state: present
+    #     ssh_key_data: "~/.ssh/id_rsa"
+    #     tower_config_file: "~/.tower_cli.cfg"
+    #   become_user: "{{ lab_username }}"
+    #   tags:
+    #     - tower
+    #
+    # - name: Add tower machine credential
+    #   tower_credential:
+    #     name: tower
+    #     description: tower
+    #     organization: Default
+    #     kind: ssh
+    #     state: present
+    #     ssh_key_data: "~/.ssh/id_rsa"
+    #     tower_config_file: "~/.tower_cli.cfg"
+    #   become_user: "{{ lab_username }}"
+    #   tags:
+    #     - tower
 
     - debug: msg="Control node public IP':' {{ ansible_host }}"
 

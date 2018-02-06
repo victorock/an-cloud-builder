@@ -1,12 +1,8 @@
 ---
 cloud_acls:
-  control-acl:
+  host-acl:
     - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }
     - { src_ip: 0.0.0.0/0, dst_ports: 443, proto: tcp }
-    - { src_ip: 0.0.0.0/0, proto: icmp }
-  app-acl:
-    - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }
-    - { src_ip: 0.0.0.0/0, dst_ports: 80, proto: tcp }
     - { src_ip: 0.0.0.0/0, proto: icmp }
   vnf-acl:
     - { src_ip: 0.0.0.0/0, proto: all }
@@ -15,42 +11,31 @@ vpc_list:
     provider: "{{ cloud_provider }}"
     region: "{{ cloud_region }}"
     project: "{{ cloud_project }}"
-    cidr: 172.18.0.0/16
+    cidr: "{{ cloud_cidr }}"
     networks:
-      - name: "mgmt.{{ cloud_name }}"
-        cidr: "172.18.0.0/24"
+      - name: "mgmt.vpc.{{ cloud_name }}"
+        cidr: "{{ cloud_cidr | ipsubnet(24, 0) }}"
         az: "{{ cloud_region }}a"
-      - name: "outside.{{ cloud_name }}"
-        cidr: "172.18.1.0/24"
+      - name: "outside.vpc.{{ cloud_name }}"
+        cidr: "{{ cloud_cidr | ipsubnet(24, 1) }}"
         az: "{{ cloud_region }}a"
-      - name: "inside.{{ cloud_name }}"
-        cidr: "172.18.2.0/24"
+      - name: "inside.vpc.{{ cloud_name }}"
+        cidr: "{{ cloud_cidr | ipsubnet(24, 2) }}"
         az: "{{ cloud_region }}a"
         routes:
-          - cidr: '0.0.0.0/0'
+          - cidr: "0.0.0.0/0"
             instance: "pan.{{ cloud_name }}"
             if_index: 2
     instances:
-      - name: "control.{{ cloud_name }}"
-        size: medium
-        image: centos7
-        ansible_user: centos
-        interfaces:
-          - name: eth0
-            subnet: "mgmt.{{ cloud_name }}"
-            acl: control-acl
-            public_ip: true
-        tags:
-          Owner: "{{ cloud_name }}"
-          groups: hosts, control_hosts
       - name: "host1.{{ cloud_name }}"
         size: micro
         image: centos7
         ansible_user: centos
         interfaces:
           - name: eth0
-            subnet: "inside.{{ cloud_name }}"
-            acl: app-acl
+            subnet: "inside.vpc.{{ cloud_name }}"
+            acl: host-acl
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(10) | ipaddr('address') }}"
             public_ip: false
         tags:
           Owner: "{{ cloud_name }}"
@@ -61,8 +46,9 @@ vpc_list:
         ansible_user: centos
         interfaces:
           - name: eth0
-            subnet: "inside.{{ cloud_name }}"
-            acl: app-acl
+            subnet: "inside.vpc.{{ cloud_name }}"
+            acl: host-acl
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(11) | ipaddr('address') }}"
             public_ip: false
         tags:
           Owner: "{{ cloud_name }}"
@@ -73,49 +59,64 @@ vpc_list:
         ansible_user: admin
         interfaces:
           - name: mgmt
-            subnet: "mgmt.{{ cloud_name }}"
+            subnet: "mgmt.vpc.{{ cloud_name }}"
             acl: vnf-acl
-            private_ip: 172.18.0.253
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 0) | ipaddr(-3) | ipaddr('address') }}"
             public_ip: true
           - name: eth0
-            subnet: "outside.{{ cloud_name }}"
+            subnet: "outside.vpc.{{ cloud_name }}"
             acl: vnf-acl
-            private_ip: 172.18.1.253
+            zone_name: untrust
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 1) | ipaddr(-3) | ipaddr('address') }}"
             public_ip: true
           - name: eth1
-            subnet: "inside.{{ cloud_name }}"
+            subnet: "inside.vpc.{{ cloud_name }}"
             acl: vnf-acl
-            private_ip: 172.18.2.253
+            zone_name: trust
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(-3) | ipaddr('address') }}"
         tags:
           Owner: "{{ cloud_name }}"
           network_os: tmos
-          groups: network,tmos
+          groups: network, tmos
       - name: "pan.{{ cloud_name }}"
         size: xlarge
         image: pan-payg
         ansible_user: admin
         interfaces:
           - name: mgmt
-            subnet: "mgmt.{{ cloud_name }}"
+            subnet: "mgmt.vpc.{{ cloud_name }}"
             acl: vnf-acl
-            private_ip: 172.18.0.254
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 0) | ipaddr(-2) | ipaddr('address') }}"
             public_ip: true
           - name: ethernet1/1
-            subnet: "outside.{{ cloud_name }}"
+            subnet: "outside.vpc.{{ cloud_name }}"
             acl: vnf-acl
             zone_name: untrust
-            private_ip: 172.18.1.254
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 1) | ipaddr(-2) | ipaddr('address') }}"
             public_ip: true
           - name: ethernet1/2
-            subnet: "inside.{{ cloud_name }}"
+            subnet: "inside.vpc.{{ cloud_name }}"
             acl: vnf-acl
             zone_name: trust
-            private_ip: 172.18.2.254
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(-2) | ipaddr('address') }}"
         tags:
           Owner: "{{ cloud_name }}"
           network_os: panos
-          groups: network,panos
-
+          groups: network, panos
+      - name: "control.{{ cloud_name }}"
+        size: medium
+        image: centos7
+        ansible_user: centos
+        volume_size: 20
+        interfaces:
+          - name: eth0
+            subnet: "mgmt.vpc.{{ cloud_name }}"
+            private_ip: "{{ cloud_cidr | ipsubnet(24, 0) | ipaddr(10) | ipaddr('address') }}"
+            acl: host-acl
+            public_ip: true
+        tags:
+          Owner: "{{ cloud_name }}"
+          groups: hosts, control_hosts
 cloud_image_map:
   aws:
     us-east-1:

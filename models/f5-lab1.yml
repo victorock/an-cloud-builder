@@ -44,7 +44,7 @@ vpc_list:
         interfaces:
           - name: eth0
             subnet: "inside.vpc.{{ cloud_name }}"
-            acl: apphost-acl
+            acl: host-acl
             public_ip: true
             private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(10) | ipaddr('address') }}"
         tags:
@@ -58,7 +58,7 @@ vpc_list:
         interfaces:
           - name: eth0
             subnet: "inside.vpc.{{ cloud_name }}"
-            acl: apphost-acl
+            acl: host-acl
             public_ip: true
             private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(11) | ipaddr('address') }}"
         tags:

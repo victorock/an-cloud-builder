@@ -8,24 +8,24 @@ cloud_acls:
     - { src_ip: 0.0.0.0/0, proto: all }
 vpc_list:
   - name: "vpc1.{{ cloud_name }}"
-    provider: "{{ cloud_provider1 }}"
-    region: "{{ cloud_region1 }}"
+    provider: "{{ cloud_provider }}"
+    region: "{{ cloud_region }}"
     project: "{{ cloud_name }}"
     cidr: 172.17.0.0/16
     networks:
       - name: "mgmt.vpc1.{{ cloud_name }}"
         cidr: "172.17.0.0/24"
-        az: "{{ cloud_region1 }}a"
+        az: "{{ cloud_region }}a"
       - name: "outside.vpc1.{{ cloud_name }}"
         cidr: "172.17.1.0/24"
-        az: "{{ cloud_region1 }}a"
+        az: "{{ cloud_region }}a"
         routes:
           - cidr: "172.18.1.0/24"
             instance: "rtr1.{{ cloud_name }}"
             if_index: 1
       - name: "inside.vpc1.{{ cloud_name }}"
         cidr: "172.17.2.0/24"
-        az: "{{ cloud_region1 }}a"
+        az: "{{ cloud_region }}a"
         routes:
           - cidr: "0.0.0.0/0"
             instance: "rtr1.{{ cloud_name }}"
@@ -64,20 +64,20 @@ vpc_list:
           Owner: student
           groups: control
   - name: "vpc2.{{ cloud_name }}"
-    provider: "{{ cloud_provider2 }}"
-    region: "{{ cloud_region2 }}"
+    provider: "{{ cloud_provider }}"
+    region: "{{ cloud_region }}"
     project: "{{ cloud_name }}"
     cidr: 172.18.0.0/16
     networks:
       - name: "mgmt.vpc2.{{ cloud_name }}"
         cidr: "172.18.0.0/24"
-        az: "{{ cloud_region2 }}b"
+        az: "{{ cloud_region }}b"
       - name: "outside.vpc2.{{ cloud_name }}"
         cidr: "172.18.1.0/24"
-        az: "{{ cloud_region2 }}b"
+        az: "{{ cloud_region }}b"
       - name: "inside.vpc2.{{ cloud_name }}"
         cidr: "172.18.2.0/24"
-        az: "{{ cloud_region2 }}b"
+        az: "{{ cloud_region }}b"
         routes:
           - cidr: "0.0.0.0/0"
             instance: "rtr2.{{ cloud_name }}"
@@ -85,7 +85,7 @@ vpc_list:
     instances:
       - name: "rtr2.{{ cloud_name }}"
         size: xlarge
-        image: mx-byol
+        image: srx-payg
         ansible_user: jnpr
         interfaces:
           - name: fxp0
