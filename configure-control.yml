@@ -45,27 +45,6 @@
       delegate_to: localhost
       run_once: yes
 
-    - name: Create the inventory directory
-      file:
-        path: "{{ item }}"
-        state: directory
-        mode: 0755
-      with_items:
-        - "{{ inventory_root }}"
-        - "{{ inventory_root }}/{{ cloud_project }}"
-        - "{{ inventory_root }}/{{ cloud_project }}/host_vars"
-        - "{{ inventory_root }}/{{ cloud_project }}/group_vars"
-
-    - name: Create the inventory file on the local node
-      template:
-        src: local-inventory.j2
-        dest: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}"
-
-    - name: Copy group_vars
-      copy:
-        src: group_vars
-        dest: "{{ inventory_root }}/{{ cloud_project }}"
-
 - hosts: "control_hosts:&{{ cloud_name }}"
   become: yes
   vars:
@@ -130,6 +109,15 @@
         owner: "{{ lab_username }}"
         mode: 0600
 
+    - name: create the ~/.ssh/config
+      blockinfile:
+        path: "~{{ lab_username }}/.ssh/config"
+        create: yes
+        owner: "{{ lab_username }}"
+        block: |
+          Host *
+          StrictHostKeyChecking no
+
     - name: create the ~/.ansible.cfg
       blockinfile:
         path: "~{{ lab_username }}/.ansible.cfg"
@@ -166,7 +154,7 @@
         block: |
           host: localhost
           username: admin
-          password: "{{ ansible_tower_admin_pass }}"
+          password: {{ ansible_tower_admin_pass }}
       when: stat_results.stat.exists == false
       become_user: "{{ lab_username }}"
 
@@ -217,7 +205,7 @@
     - include_role:
         name: ansible-tower
       vars:
-        ansible_tower_version: '3.2.2-1'
+        ansible_tower_version: '3.2.2'
       tags:
         - tower
 
@@ -275,7 +263,7 @@
         mode: 0600
 
     - name: Create the an-demo-kit local repo
-      command: git clone --bare https://github.com/ismc/an-demo-kit.git
+      command: git clone --bare https://github.com/network-automation/an-demo-kit.git
       args:
         creates: /home/git/an-demo-kit.git/HEAD
       become_user: git
