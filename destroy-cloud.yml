@@ -28,9 +28,22 @@
         cloud_region: "{{ opt_provider_region.split('/')[1] }}"
       when: opt_provider_region is defined
 
+    - name: Find the cloud model
+      set_fact:
+        cloud_model_file: "{{ item }}"
+      with_first_found:
+        - files:
+            - "{{ cloud_model }}.yml"
+            - "{{ cloud_model }}.yaml"
+            - "{{ cloud_model }}"
+          paths:
+            - "{{ model_dir }}"
+            - "{{ playbook_dir }}"
+            - "{{ inventory_dir }}"
+
     - name: Read in the Cloud Model {{ cloud_model }}
       include_vars:
-        file: "{{ model_dir }}/{{ cloud_model }}"
+        file: "{{ cloud_model_file }}"
 
     - include_role:
         name: cloud-destroy

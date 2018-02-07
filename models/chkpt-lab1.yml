@@ -24,30 +24,25 @@ vpc_list:
         az: "{{ cloud_region }}a"
         routes:
           - cidr: '0.0.0.0/0'
-            instance: "asa.{{ cloud_name }}"
+            instance: "vsec.{{ cloud_name }}"
             if_index: 1
     instances:
-      - name: "asa.{{ cloud_name }}"
-        size: xlarge
-        image: asa-payg
+      - name: "vsec.{{ cloud_name }}"
+        size: large
+        image: chkpt-vsec-payg
         interfaces:
-          - name: Management0/0
-            subnet: "mgmt.vpc.{{ cloud_name }}"
-            acl: vnf-acl
-            public_ip: true
-            private_ip: "{{ cloud_cidr | ipsubnet(24, 0) | ipaddr(-2) | ipaddr('address') }}"
-          - name: GigabitEthernet0/0
+          - name: eth0
             subnet: "outside.vpc.{{ cloud_name }}"
             acl: vnf-acl
             private_ip: "{{ cloud_cidr | ipsubnet(24, 1) | ipaddr(-2) | ipaddr('address') }}"
             public_ip: true
-          - name: GigabitEthernet0/1
+          - name: eth1
             subnet: "inside.vpc.{{ cloud_name }}"
             private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(-2) | ipaddr('address') }}"
             acl: vnf-acl
         tags:
           Owner: student
-          network_os: asa
+          network_os: chkpt
           groups: network, filewall, asa
       - name: "host1.{{ cloud_name }}"
         size: micro
@@ -81,7 +76,8 @@ cloud_image_map:
     us-east-1:
       srx-payg: ami-ddb6f3a7
       asa-payg: ami-ee991294
-
+      chkpt-vsec-payg: ami-79828703
+      chkpt-mgmt-payg: ami-3683864c
       mx-byol: ami-e5a6839e
       csr-byol: ami-bcbfb9c7
       centos7: ami-02e98f78
@@ -90,5 +86,6 @@ cloud_size_map:
   aws:
     micro: t2.micro
     medium: t2.medium
+    chkpt-large: c4.large
     large: m4.large
     xlarge: m4.xlarge
