@@ -21,6 +21,11 @@
   tasks:
     - assert:
         that:
+          - ansible_version.full | version_compare('2.5', '>=')
+        msg: "This playbook requires ansible >= 2.5. You have {{ ansible_version.full }}"
+
+    - assert:
+        that:
           - cloud_model is defined
         msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
 
@@ -74,9 +79,12 @@
     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
     cloud_cidr: '10.1.0.0/16'
-    demo_kit_root: '~labuser/an-demo-kit'
+    demo_username: 'labuser'
+    demo_repo_name: 'an-demos'
+    demo_repo_root: 'https://github.com/network-automation'
+    demo_root: "~{{ demo_username }}/{{ demo_repo_name }}"
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
-    lab_username: 'labuser'
+
     use_ansible_devel: no
 
   tasks:
@@ -87,7 +95,7 @@
 
     - name: Create the lab user
       user:
-        name: "{{ lab_username }}"
+        name: "{{ demo_username }}"
         comment: "Lab User"
         password: '$6$2qJit.8h6RYzzGpF$DCyv0YRGCN0FTqO0e.MjphP1xooyzOB1sloxzSaA/Db8Br.r.Fip.sEc9bV1vfMqzhzBL0RAQPskpzwXh10mU0'
         uid: 2000
@@ -103,39 +111,39 @@
 
     - name: Create the .ssh directory
       file:
-        path: "~{{ lab_username }}/.ssh"
+        path: "~{{ demo_username }}/.ssh"
         state: directory
-        owner: "{{ lab_username }}"
+        owner: "{{ demo_username }}"
         mode: 0700
 
     - name: Copy the ssh private key
       copy:
         src: "{{ ansible_ssh_private_key_file }}"
-        dest: "~{{ lab_username }}/.ssh/id_rsa"
-        owner: "{{ lab_username }}"
+        dest: "~{{ demo_username }}/.ssh/id_rsa"
+        owner: "{{ demo_username }}"
         mode: 0600
 
     - name: Copy the ssh public key
       copy:
         src: "{{ ansible_ssh_private_key_file }}.pub"
-        dest: "~{{ lab_username }}/.ssh/id_rsa.pub"
-        owner: "{{ lab_username }}"
+        dest: "~{{ demo_username }}/.ssh/id_rsa.pub"
+        owner: "{{ demo_username }}"
         mode: 0600
 
     - name: create the ~/.ssh/config
       blockinfile:
-        path: "~{{ lab_username }}/.ssh/config"
+        path: "~{{ demo_username }}/.ssh/config"
         create: yes
-        owner: "{{ lab_username }}"
+        owner: "{{ demo_username }}"
         block: |
           Host *
           StrictHostKeyChecking no
 
     - name: create the ~/.ansible.cfg
       blockinfile:
-        path: "~{{ lab_username }}/.ansible.cfg"
+        path: "~{{ demo_username }}/.ansible.cfg"
         create: yes
-        owner: "{{ lab_username }}"
+        owner: "{{ demo_username }}"
         block: |
           [defaults]
           host_key_checking = False
@@ -150,33 +158,33 @@
 
     - name: Disable certificate checking for Python
       lineinfile:
-        dest: "~{{ lab_username }}/.bash_profile"
+        dest: "~{{ demo_username }}/.bash_profile"
         line: "export PYTHONHTTPSVERIFY=0"
 
     - name: Check to see if the .tower_cli.cfg exists
       stat:
-        path: "~{{ lab_username }}/.tower_cli.cfg"
+        path: "~{{ demo_username }}/.tower_cli.cfg"
       register: stat_results
-      become_user: "{{ lab_username }}"
+      become_user: "{{ demo_username }}"
 
     - name: create the ~/.tower_cli.cfg
       blockinfile:
-        path: "~{{ lab_username }}/.tower_cli.cfg"
+        path: "~{{ demo_username }}/.tower_cli.cfg"
         create: yes
-        owner: "{{ lab_username }}"
+        owner: "{{ demo_username }}"
         mode: 0600
         block: |
           host: localhost
           username: admin
           password: {{ ansible_tower_admin_pass }}
       when: stat_results.stat.exists == false
-      become_user: "{{ lab_username }}"
+      become_user: "{{ demo_username }}"
 
     # - name: Get the password that we've previously specified for Tower
     #   slurp:
-    #     src: "~{{ lab_username }}/.tower_cli.cfg"
+    #     src: "~{{ demo_username }}/.tower_cli.cfg"
     #   register: tower_creds
-    #   become_user: "{{ lab_username }}"
+    #   become_user: "{{ demo_username }}"
     #
     # - debug: msg="{{ tower_creds['content'] | b64decode }}"
     #
@@ -276,55 +284,55 @@
         owner: git
         mode: 0600
 
-    - name: Create the an-demo-kit local repo
-      command: git clone --bare https://github.com/network-automation/an-demo-kit.git
+    - name: Create the {{ demo_repo_name }} local repo
+      command: git clone --bare "{{ demo_repo_root }}/{{ demo_repo_name }}.git"
       args:
-        creates: /home/git/an-demo-kit.git/HEAD
+        creates: "/home/git/{{ demo_repo_name }}.git/HEAD"
       become_user: git
 
-    - name: Install the an-demo-kit
+    - name: Install the {{ demo_repo_name }}
       git:
-        repo: git@localhost:/home/git/an-demo-kit.git
-        dest: "{{ demo_kit_root }}"
+        repo: "git@localhost:/home/git/{{ demo_repo_name }}.git"
+        dest: "{{ demo_root }}"
         force: yes
-      become_user: "{{ lab_username }}"
+      become_user: "{{ demo_username }}"
 
     - name: Remove inventory from .gitignore
       lineinfile:
-        path: "~{{ lab_username }}/an-demo-kit/.gitignore"
+        path: "~{{ demo_username }}/{{ demo_repo_name }}/.gitignore"
         state: absent
         regexp: 'inventory'
-      become_user: "{{ lab_username }}"
+      become_user: "{{ demo_username }}"
 
     - name: Create the inventory directory
       file:
         path: "{{ item }}"
         state: directory
-        owner: "{{ lab_username }}"
+        owner: "{{ demo_username }}"
         mode: 0755
         recurse: yes
       with_items:
-        - "{{ demo_kit_root }}/inventory"
-        - "{{ demo_kit_root }}/inventory/host_vars"
-        - "{{ demo_kit_root }}/inventory/group_vars"
+        - "{{ demo_root }}/inventory"
+        - "{{ demo_root }}/inventory/host_vars"
+        - "{{ demo_root }}/inventory/group_vars"
 
     - name: Create the inventory file on the control node(s)
       template:
         src: control-inventory.j2
-        dest: "{{ demo_kit_root }}/inventory/hosts"
-        owner: "{{ lab_username }}"
+        dest: "{{ demo_root }}/inventory/hosts"
+        owner: "{{ demo_username }}"
 
     - name: Create the group_vars files
       copy:
         src: group_vars
-        dest: "{{ demo_kit_root }}/inventory"
-        owner: "{{ lab_username }}"
+        dest: "{{ demo_root }}/inventory"
+        owner: "{{ demo_username }}"
 
     - name: Create the host_vars directories
       file:
-        path: "{{ demo_kit_root }}/inventory/host_vars/{{ item.split('.')[0] }}"
+        path: "{{ demo_root }}/inventory/host_vars/{{ item.split('.')[0] }}"
         state: directory
-        owner: "{{ lab_username }}"
+        owner: "{{ demo_username }}"
         mode: 0755
       when: hostvars[item].interfaces is defined
       with_items: "{{ groups.network }}"
@@ -332,22 +340,22 @@
     - name: Create the interfaces files
       template:
         src: "{{ playbook_dir }}/templates/interfaces.j2"
-        dest: "{{ demo_kit_root }}/inventory/host_vars/{{ item.split('.')[0] }}/interfaces.yml"
-        owner: "{{ lab_username }}"
+        dest: "{{ demo_root }}/inventory/host_vars/{{ item.split('.')[0] }}/interfaces.yml"
+        owner: "{{ demo_username }}"
       when: hostvars[item].interfaces is defined
       with_items: "{{ groups.network }}"
 
     - name: Add the inventory changes
       command: git add inventory
       args:
-        chdir: "{{ demo_kit_root }}"
-      become_user: "{{ lab_username }}"
+        chdir: "{{ demo_root }}"
+      become_user: "{{ demo_username }}"
 
     - name: Commit the inventory changes
       command: git commit -a -m "Added inventory"
       args:
-        chdir: "{{ demo_kit_root }}"
-      become_user: "{{ lab_username }}"
+        chdir: "{{ demo_root }}"
+      become_user: "{{ demo_username }}"
 
     # - name: Add tower git credential
     #   tower_credential:
@@ -358,7 +366,7 @@
     #     state: present
     #     ssh_key_data: "~/.ssh/id_rsa"
     #     tower_config_file: "~/.tower_cli.cfg"
-    #   become_user: "{{ lab_username }}"
+    #   become_user: "{{ demo_username }}"
     #   tags:
     #     - tower
     #
@@ -371,7 +379,7 @@
     #     state: present
     #     ssh_key_data: "~/.ssh/id_rsa"
     #     tower_config_file: "~/.tower_cli.cfg"
-    #   become_user: "{{ lab_username }}"
+    #   become_user: "{{ demo_username }}"
     #   tags:
     #     - tower
 

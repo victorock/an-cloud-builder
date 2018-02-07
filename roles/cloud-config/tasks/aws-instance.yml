@@ -52,6 +52,7 @@
         Name: "{{ cloud_instance_item.name }}"
         Environment: "{{ cloud_vpc_data.project }}"
         Role: "{{ cloud_instance_item.role | default(cloud_instance_item.name) }}"
+        Owner: "{{ cloud_project }}"
         cloud_project: "{{ cloud_project }}"
         cloud_instance: "{{ cloud_instance }}"
         cloud_name: "{{ cloud_name }}"

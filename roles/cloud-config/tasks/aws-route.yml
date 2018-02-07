@@ -40,5 +40,5 @@
       - "{{ subnet_map[cloud_route_item.0.name] }}"
     routes:
       - dest: "{{ cloud_route_item.1.cidr }}"
-        interface_id: "{{ eni_facts.network_interfaces[0].network_interface_id }}"
+        network_interface_id: "{{ eni_facts.network_interfaces[0].network_interface_id }}"
   register: private_route_table
