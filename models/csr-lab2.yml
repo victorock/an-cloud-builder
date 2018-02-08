@@ -104,9 +104,8 @@ vpc_list:
             if_index: 2
     instances:
       - name: "rtr2.{{ cloud_name }}"
-        size: xlarge
-        image: srx-payg
-        ansible_user: jnpr
+        size: medium
+        image: csr-byol
         interfaces:
           - name: GigabitEthernet1
             subnet: "mgmt.vpc2.{{ cloud_name }}"
