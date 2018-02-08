@@ -3,6 +3,7 @@
     cloud_instance_image: "{{ cloud_instance_item.image }}"
     cloud_instance_size: "{{ cloud_instance_item.size }}"
     cloud_interface_list: []
+    cloud_user_data: ''
 
 - block:
     - block:
@@ -57,6 +58,24 @@
         cloud_instance: "{{ cloud_instance }}"
         cloud_name: "{{ cloud_name }}"
 
+- debug: var=cloud_instance_item.user_data_file
+  when: cloud_instance_item.user_data_file is defined
+
+- name: Find the cloud user data file
+  set_fact:
+    cloud_user_data: "{{ lookup('file', item) }}"
+  with_first_found:
+    - files:
+        - "{{ cloud_instance_item.user_data_file }}"
+        - "{{ cloud_instance_item.user_data_file }}.user_data"
+      paths:
+        - "{{ playbook_dir }}"
+        - "{{ playbook_dir }}/user-data"
+        - "{{ playbook_dir }}/files"
+        - "{{ inventory_dir }}"
+      skip: true
+
+
 - name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
   ec2:
     aws_access_key: "{{ aws_access_key | default(omit) }}"
@@ -76,7 +95,7 @@
     vpc_subnet_id: "{{ subnet_map[cloud_instance_item.interfaces[0].subnet] }}"
     private_ip: "{{ cloud_instance_item.interfaces[0].private_ip | ipaddr('address') if cloud_instance_item.interfaces[0].private_ip is defined else omit }}"
     assign_public_ip: "{{ cloud_instance_item.interfaces[0].public_ip | default(omit) }}"
-    user_data: "{{ cloud_instance_item.user_data | default(omit) }}"
+    user_data: "{{ cloud_user_data | default(omit) }}"
   register: instance_results
 
 - set_fact:

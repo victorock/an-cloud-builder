@@ -11,20 +11,20 @@ vpc_list:
     provider: "{{ cloud_provider }}"
     region: "{{ cloud_region }}"
     project: "{{ cloud_name }}"
-    cidr: 172.17.0.0/16
+    cidr: 10.1.0.0/16
     networks:
       - name: "mgmt.vpc1.{{ cloud_name }}"
-        cidr: "172.17.0.0/24"
+        cidr: "10.1.0.0/24"
         az: "{{ cloud_region }}a"
       - name: "outside.vpc1.{{ cloud_name }}"
-        cidr: "172.17.1.0/24"
+        cidr: "10.1.1.0/24"
         az: "{{ cloud_region }}a"
         routes:
-          - cidr: "172.18.1.0/24"
+          - cidr: "10.2.2.0/24"
             instance: "rtr1.{{ cloud_name }}"
             if_index: 1
       - name: "inside.vpc1.{{ cloud_name }}"
-        cidr: "172.17.2.0/24"
+        cidr: "10.1.2.0/24"
         az: "{{ cloud_region }}a"
         routes:
           - cidr: "0.0.0.0/0"
@@ -38,45 +38,64 @@ vpc_list:
           - name: GigabitEthernet1
             subnet: "mgmt.vpc1.{{ cloud_name }}"
             acl: rtr-acl
+            private_ip: 10.1.0.254
             public_ip: true
           - name: GigabitEthernet2
             subnet: "outside.vpc1.{{ cloud_name }}"
             acl: rtr-acl
+            private_ip: 10.1.1.254
             public_ip: true
           - name: GigabitEthernet3
             subnet: "inside.vpc1.{{ cloud_name }}"
+            private_ip: 10.1.2.254
             acl: rtr-acl
         tags:
           Owner: student
           network_os: ios
-          groups: network,routers
-        user_data: 'ios-config-0001=ip route 0.0.0.0 0.0.0.0 GigabitEthernet1 dhcp'
+          groups: network, routers
+        user_data_file: csr
       - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
         ansible_user: centos
         interfaces:
           - name: eth0
-            subnet: "outside.vpc1.{{ cloud_name }}"
+            subnet: "mgmt.vpc1.{{ cloud_name }}"
             acl: host-acl
+            private_ip: 10.1.0.10
             public_ip: true
         tags:
           Owner: student
-          groups: control
+          groups: control_hosts
+      - name: "host1.{{ cloud_name }}"
+        size: micro
+        image: centos7
+        ansible_user: centos
+        interfaces:
+          - name: eth0
+            subnet: "inside.vpc1.{{ cloud_name }}"
+            private_ip: 10.1.2.10
+            acl: host-acl
+        tags:
+          groups: hosts
   - name: "vpc2.{{ cloud_name }}"
     provider: "{{ cloud_provider }}"
     region: "{{ cloud_region }}"
     project: "{{ cloud_name }}"
-    cidr: 172.18.0.0/16
+    cidr: 10.2.0.0/16
     networks:
       - name: "mgmt.vpc2.{{ cloud_name }}"
-        cidr: "172.18.0.0/24"
+        cidr: "10.2.0.0/24"
         az: "{{ cloud_region }}b"
       - name: "outside.vpc2.{{ cloud_name }}"
-        cidr: "172.18.1.0/24"
+        cidr: "10.2.1.0/24"
         az: "{{ cloud_region }}b"
+        routes:
+          - cidr: "10.1.2.0/24"
+            instance: "rtr2.{{ cloud_name }}"
+            if_index: 1
       - name: "inside.vpc2.{{ cloud_name }}"
-        cidr: "172.18.2.0/24"
+        cidr: "10.2.2.0/24"
         az: "{{ cloud_region }}b"
         routes:
           - cidr: "0.0.0.0/0"
@@ -92,34 +111,31 @@ vpc_list:
             subnet: "mgmt.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
-            private_ip: 172.18.0.254
+            private_ip: 10.2.0.254
           - name: ge-0/0/0
             subnet: "outside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
             public_ip: true
-            private_ip: 172.18.1.254
+            private_ip: 10.2.1.254
           - name: ge-0/0/1
             subnet: "inside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
-            private_ip: 172.18.2.254
+            private_ip: 10.2.2.254
         tags:
-          Owner: student
           network_os: junos
-          groups: network,routers
-        user_data: "{{ lookup('file', 'user-data/juniper-mx') }}"
-      - name: "host1.{{ cloud_name }}"
+          groups: network, routers
+        user_data_file: junos
+      - name: "host2.{{ cloud_name }}"
         size: micro
         image: centos7
         ansible_user: centos
         interfaces:
           - name: eth0
             subnet: "inside.vpc2.{{ cloud_name }}"
+            private_ip: 10.2.2.10
             acl: host-acl
-        key_name: "{{ cloud_name }}"
         tags:
-          Owner: student
           groups: hosts
-
 cloud_image_map:
   aws:
     us-east-1:
