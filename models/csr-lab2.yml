@@ -118,7 +118,7 @@ vpc_list:
             private_ip: 10.2.1.254
             public_ip: true
           - name: GigabitEthernet3
-            subnet: "inside.vpc1.{{ cloud_name }}"
+            subnet: "inside.vpc2.{{ cloud_name }}"
             private_ip: 10.2.2.254
             acl: rtr-acl
         tags:
