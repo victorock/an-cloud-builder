@@ -142,7 +142,7 @@
         block: |
           [defaults]
           host_key_checking = False
-          ansible_ssh_private_key_file = ~/.ssh/id_rsa
+          inventory = /home/labuser/an-demos/inventory
           retry_files_enabled = False
 
     - name: Allow password authentication
