@@ -51,7 +51,7 @@ To configure the control node (install Ansible, setup Ansible Inventory, etc)
 ansible-playbook -e 'cloud_model=csr-lab1.yml' configure-control.yml
 ```
 
-- If you want to deploy tower on the control node, add `--skip-tags=tower`
+- If you want to skip the deployment of tower on the control node, add `--skip-tags=tower`
 
 - If you want to deploy with the Ansible devel branch, add `-e 'use_ansible_devel=yes'`.  This will also disable installing tower.
 
