@@ -142,6 +142,8 @@
         block: |
           [defaults]
           host_key_checking = False
+          ansible_ssh_private_key_file = ~/.ssh/id_rsa
+          retry_files_enabled = False
 
     - name: Allow password authentication
       lineinfile: dest=/etc/ssh/sshd_config
@@ -212,6 +214,7 @@
       with_items:
         - python2-pip
         - git
+        - vim
 
     - name: Install YUM packages
       yum:
