@@ -104,28 +104,28 @@ vpc_list:
             if_index: 2
     instances:
       - name: "rtr2.{{ cloud_name }}"
-        size: xlarge
-        image: srx-payg
-        ansible_user: jnpr
+        size: medium
+        image: csr-byol
         interfaces:
           - name: GigabitEthernet1
             subnet: "mgmt.vpc2.{{ cloud_name }}"
             acl: rtr-acl
-            public_ip: true
             private_ip: 10.2.0.254
+            public_ip: true
           - name: GigabitEthernet2
             subnet: "outside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
-            public_ip: true
             private_ip: 10.2.1.254
+            public_ip: true
           - name: GigabitEthernet3
-            subnet: "inside.vpc2.{{ cloud_name }}"
-            acl: rtr-acl
+            subnet: "inside.vpc1.{{ cloud_name }}"
             private_ip: 10.2.2.254
+            acl: rtr-acl
         tags:
+          Owner: student
           network_os: ios
           groups: network, routers
-        user_data_file: junos
+        user_data_file: csr
       - name: "host2.{{ cloud_name }}"
         size: micro
         image: centos7

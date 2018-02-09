@@ -35,19 +35,26 @@
             state: directory
             mode: 0755
 
-        - openssl_privatekey:
-            path: "{{ cloud_private_key_file }}"
-            type: RSA
-            size: 2048
-          register: key_results
+        - name: Generate SSH keys
+          shell: ssh-keygen -b 2048 -t rsa -f "{{ cloud_private_key_file }}" -I "{{ cloud_name }}" -q -N ""
+          args:
+            creates: "{{ cloud_private_key_file }}"
+          delegate_to: localhost
+          run_once: yes
 
-        - openssl_publickey:
-            path: "{{ cloud_public_key_file }}"
-            privatekey_path: "{{ cloud_private_key_file }}"
-            format: OpenSSH
-            force: no
-          when: key_results.changed
-          register: public_key_results
+        # - openssl_privatekey:
+        #     path: "{{ cloud_private_key_file }}"
+        #     type: RSA
+        #     size: 2048
+        #   register: key_results
+        #
+        # - openssl_publickey:
+        #     path: "{{ cloud_public_key_file }}"
+        #     privatekey_path: "{{ cloud_private_key_file }}"
+        #     format: OpenSSH
+        #     force: no
+        #   when: key_results.changed
+        #   register: public_key_results
 
         - set_fact:
             cloud_public_key_material: "{{ lookup('file', cloud_public_key_file) }}"
