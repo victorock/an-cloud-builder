@@ -52,7 +52,7 @@ vpc_list:
         tags:
           Owner: student
           network_os: ios
-          groups: network, routers
+          groups: network, routers, hub_routers
         user_data_file: csr
       - name: "control.{{ cloud_name }}"
         size: medium
@@ -124,7 +124,7 @@ vpc_list:
         tags:
           Owner: student
           network_os: ios
-          groups: network, routers
+          groups: network, routers, spoke_routers
         user_data_file: csr
       - name: "host2.{{ cloud_name }}"
         size: micro
