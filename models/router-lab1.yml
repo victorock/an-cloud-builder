@@ -43,16 +43,18 @@ vpc_list:
           - name: GigabitEthernet2
             subnet: "outside.vpc1.{{ cloud_name }}"
             acl: rtr-acl
+            zone: tunnel
             private_ip: 10.1.1.254
             public_ip: true
           - name: GigabitEthernet3
             subnet: "inside.vpc1.{{ cloud_name }}"
-            private_ip: 10.1.2.254
             acl: rtr-acl
+            zone: tunnel
+            private_ip: 10.1.2.254
         tags:
           Owner: student
           network_os: ios
-          groups: network, routers
+          groups: network, routers, hub_routers
         user_data_file: csr
       - name: "control.{{ cloud_name }}"
         size: medium
@@ -104,7 +106,7 @@ vpc_list:
     instances:
       - name: "rtr2.{{ cloud_name }}"
         size: xlarge
-        image: srx-payg
+        image: ami-e5a6839e
         ansible_user: jnpr
         interfaces:
           - name: fxp0
@@ -115,15 +117,17 @@ vpc_list:
           - name: ge-0/0/0
             subnet: "outside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
+            zone: tunnel
             public_ip: true
             private_ip: 10.2.1.254
           - name: ge-0/0/1
             subnet: "inside.vpc2.{{ cloud_name }}"
             acl: rtr-acl
+            zone: tunnel
             private_ip: 10.2.2.254
         tags:
           network_os: junos
-          groups: network, routers
+          groups: network, routers, spoke_routers
         user_data_file: junos
       - name: "host2.{{ cloud_name }}"
         size: micro
