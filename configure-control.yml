@@ -231,10 +231,12 @@
 
     - name: Install Ansible Devel
       pip:
-        name: git+git://github.com/ansible/ansible.git
-        state: latest
+        name: ansible
+        state: present
+        version: 2.5.0b1
       when: use_ansible_devel|bool
-
+      tags:
+        - ansible
     - name: Install PIP packages
       pip:
         name: "{{ item }}"

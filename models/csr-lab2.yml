@@ -57,7 +57,7 @@ vpc_list:
       - name: "control.{{ cloud_name }}"
         size: medium
         image: centos7
-        # volume_size: 20
+        #volume_size: 20
         ansible_user: centos
         interfaces:
           - name: eth0
