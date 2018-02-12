@@ -3,6 +3,8 @@
   hosts: localhost
   connection: local
   gather_facts: False
+  tags:
+    - tower_cli
   vars:
     model_dir: "{{ playbook_dir }}/models"
     inventory_root: "{{ playbook_dir }}/inventory"
@@ -71,6 +73,7 @@
     cloud_user: ec2-user
     cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
     cloud_key_name: "{{ cloud_name }}"
+    cloud_vars_file: "{{ key_root }}/{{ cloud_name }}.yml"
     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
     cloud_cidr: '10.1.0.0/16'
@@ -79,7 +82,6 @@
     demo_repo_root: 'https://github.com/network-automation'
     demo_root: "~{{ demo_username }}/{{ demo_repo_name }}"
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
-
     use_ansible_devel: no
 
   tasks:
@@ -87,6 +89,13 @@
     #   yum:
     #     name: '*'
     #     state: latest
+
+    - name: Read in the cloud vars
+      include_vars:
+        file: "{{ cloud_vars_file }}"
+        name: cloud_vars
+      tags:
+        - tower_cli
 
     - name: Create the lab user
       user:
@@ -142,8 +151,6 @@
         block: |
           [defaults]
           host_key_checking = False
-          inventory = /home/labuser/an-demos/inventory
-          retry_files_enabled = False
 
     - name: Allow password authentication
       lineinfile: dest=/etc/ssh/sshd_config
@@ -191,7 +198,7 @@
         block: |
           host: localhost
           username: admin
-          password: {{ ansible_tower_admin_pass }}
+          password: {{ cloud_vars.password }}
       when: stat_results.stat.exists == false
       become_user: "{{ demo_username }}"
 
@@ -232,7 +239,6 @@
       with_items:
         - python2-pip
         - git
-        - vim
 
     - name: Install YUM packages
       yum:
@@ -267,7 +273,7 @@
         - requests
         - pyopenssl
         - netaddr
-        - ansible-tower-cli
+        - "ansible-tower-cli==3.1.8"
         - xmltodict
         - ncclient
 
@@ -293,7 +299,7 @@
         - requests
         - pyopenssl
         - netaddr
-        - ansible-tower-cli
+        - "ansible-tower-cli==3.1.8"
         - xmltodict
         - ncclient
 
@@ -399,6 +405,40 @@
         chdir: "{{ demo_root }}"
       become_user: "{{ demo_username }}"
 
+    - name: Push the inventory changes
+      command: git push origin master
+      args:
+        chdir: "{{ demo_root }}"
+      become_user: "{{ demo_username }}"
+
+    - name: Add tower "{{ demo_username }}" account
+      command: tower-cli user create --username "{{ demo_username }}" --password "{{ cloud_vars.password }}" --is-superuser yes --email labuser@ansible.com
+      become_user: "{{ demo_username }}"
+      tags:
+        - tower
+        - tower_cli
+
+    - name: Add tower git credential
+      command: tower-cli credential create --name git --kind scm --organization Default --ssh-key-data ~/.ssh/id_rsa
+      become_user: "{{ demo_username }}"
+      tags:
+        - tower
+        - tower_cli
+
+    - name: Add tower ssh credential
+      command: tower-cli credential create --name tower --kind ssh --organization Default --ssh-key-data ~/.ssh/id_rsa
+      become_user: "{{ demo_username }}"
+      tags:
+        - tower
+        - tower_cli
+
+    - name: Add tower demo repo
+      command: tower-cli project create --name an-demos --scm-type git --scm-url git@localhost:/home/git/an-demos
+      become_user: "{{ demo_username }}"
+      tags:
+        - tower
+        - tower_cli
+
     # - name: Add tower git credential
     #   tower_credential:
     #     name: git
@@ -406,11 +446,13 @@
     #     organization: Default
     #     kind: scm
     #     state: present
-    #     ssh_key_data: "~/.ssh/id_rsa"
-    #     tower_config_file: "~/.tower_cli.cfg"
-    #   become_user: "{{ demo_username }}"
+    #     ssh_key_data: "~{{ demo_username }}/.ssh/id_rsa"
+    #     tower_config_file: "~{{ demo_username }}/.tower_cli.cfg"
+    #   delegate_to: "{{ ansible_host }}"
+    #   become: "{{ demo_username }}"
     #   tags:
     #     - tower
+    #     - tower_cli
     #
     # - name: Add tower machine credential
     #   tower_credential:
@@ -419,13 +461,15 @@
     #     organization: Default
     #     kind: ssh
     #     state: present
-    #     ssh_key_data: "~/.ssh/id_rsa"
-    #     tower_config_file: "~/.tower_cli.cfg"
-    #   become_user: "{{ demo_username }}"
+    #     ssh_key_data: "~{{ demo_username }}/.ssh/id_rsa"
+    #     tower_config_file: "~{{ demo_username }}/.tower_cli.cfg"
+    #   delegate_to: "{{ ansible_host }}"
+    #   become: "{{ demo_username }}"
     #   tags:
     #     - tower
+    #     - tower_cli
 
-    - debug: msg="Control node public IP':' {{ ansible_host }}"
+    - debug: msg="Control node public IP = {{ ansible_host }}"
 
   handlers:
     - name: Restart sshd

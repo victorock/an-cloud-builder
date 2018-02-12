@@ -4,19 +4,19 @@ localhost ansible_connection=local
 [database]
 
 [all:vars]
-admin_password='{{ ansible_tower_admin_pass  | default ('ansible') }}'
+admin_password='{{ cloud_vars.password  | default ('ansible') }}'
 
 pg_host=''
 pg_port=''
 
 pg_database='awx'
 pg_username='awx'
-pg_password='{{ ansible_tower_pg_pass | default ('ansible') }}'
+pg_password='{{ cloud_vars.password | default ('ansible') }}'
 
 rabbitmq_port=5672
 rabbitmq_vhost=tower
 rabbitmq_username=tower
-rabbitmq_password='{{ ansible_tower_rabbitmq_pass | default ('ansible') }}'
+rabbitmq_password='{{ cloud_vars.password | default ('ansible') }}'
 rabbitmq_cookie=cookiemonster
 
 # Needs to be true for fqdns and ip addresses

@@ -13,6 +13,7 @@
     cloud_user: ec2-user
     cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
     cloud_key_name: "{{ opt_key_name | default(cloud_name) }}"
+    cloud_vars_file: "{{ key_root }}/{{ cloud_name }}.yml"
     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
     cloud_cidr: '10.1.0.0/16'
@@ -27,6 +28,26 @@
         cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
         cloud_region: "{{ opt_provider_region.split('/')[1] }}"
       when: opt_provider_region is defined
+
+    - name: Check to see if cloud_vars file exists
+      stat:
+        path: "{{ cloud_vars_file }}"
+      register: stat_results
+
+    - name: Create the cloud vars file
+      lineinfile:
+        dest: "{{ cloud_vars_file }}"
+        line: "password: Ansibull{{ lookup('password', '/tmp/passwordfile chars=digits length=4') }}"
+        create: yes
+        state: present
+      when: stat_results.stat.exists == false
+
+    - name: Read in the cloud vars
+      include_vars:
+        file: "{{ cloud_vars_file }}"
+        name: cloud_vars
+
+    - debug: var=cloud_vars
 
     - block:
         - name: Create the keys directory
