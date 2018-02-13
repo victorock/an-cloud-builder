@@ -239,6 +239,7 @@
       with_items:
         - python2-pip
         - git
+        - vim
 
     - name: Install YUM packages
       yum:
