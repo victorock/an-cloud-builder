@@ -82,7 +82,7 @@
     demo_repo_root: 'https://github.com/network-automation'
     demo_root: "~{{ demo_username }}/{{ demo_repo_name }}"
     ansible_tower_admin_pass: "{{ lookup('password', '/tmp/passwordfile chars=digits') }}"
-    use_ansible_devel: no
+    use_ansible_devel: yes
 
   tasks:
     # - name: Update all packages
@@ -282,8 +282,9 @@
 
     - name: Install Ansible Devel into Tower's virtualenv
       pip:
-        name: git+git://github.com/ansible/ansible.git
-        state: latest
+        name: ansible
+        state: present
+        version: 2.5.0b1
         virtualenv_command: /var/lib/awx/venv/ansible/bin/activate
       when: use_ansible_devel|bool
 
@@ -436,8 +437,31 @@
         - tower_cli
 
     - name: Add tower demo repo
-      command: tower-cli project create --name an-demos --scm-type git --scm-url git@localhost:/home/git/an-demos
+      command: tower-cli project create --name an-demos --scm-type git --scm-url git@localhost:/home/git/an-demos.git --scm-credential git
       become_user: "{{ demo_username }}"
+      tags:
+        - tower
+        - tower_cli
+
+    - name: Add tower demo invetnory
+      command: tower-cli inventory create --name an-demos
+      become_user: "{{ demo_username }}"
+      tags:
+        - tower
+        - tower_cli
+
+    - name: Add the playbooks
+      command: tower-cli job_template create --name "{{ item }}" --project an-demos --inventory an-demos --playbook "net/{{ item }}.yml" --limit network --machine-credential tower
+      become_user: "{{ demo_username }}"
+      with_items:
+        - network-hostname
+        - network-interfaces
+        - network-logging
+        - network-banners
+        - network-resolver
+        - network-tunnels
+        - network-bgp-peers
+        - network-bgp-networks
       tags:
         - tower
         - tower_cli
