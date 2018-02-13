@@ -151,6 +151,7 @@
         block: |
           [defaults]
           host_key_checking = False
+          inventory = /home/labuser/an-demos/inventory
 
     - name: Allow password authentication
       lineinfile: dest=/etc/ssh/sshd_config
