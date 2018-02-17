@@ -1,5 +1,5 @@
 interfaces:
-{% for interface in interfaces %}
+{% for interface in host_interface_list.value %}
   - name: {{ interface.name }}
     ip: {{ interface.ip | default('') }}
     private_ip_address: {{ interface.private_ip_address | default('') }}

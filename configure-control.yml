@@ -1,79 +1,12 @@
 ---
-- name: Read in the cloud inventory
-  hosts: localhost
-  connection: local
-  gather_facts: False
-  tags:
-    - tower_cli
-  vars:
-    model_dir: "{{ playbook_dir }}/models"
-    inventory_root: "{{ playbook_dir }}/inventory"
-    key_root: "{{ playbook_dir }}/keys"
-    cloud_instance: "{{ cloud_model.split('.')[0] }}"
-    cloud_project: "{{ lookup('env','USER') }}"
-    cloud_provider: 'aws'
-    cloud_region: 'us-east-1'
-    cloud_user: ec2-user
-    cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
-    cloud_key_name: "{{ cloud_name }}"
-    cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
-    cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
-    cloud_cidr: '10.1.0.0/16'
-
-  tasks:
-    - assert:
-        that:
-          - cloud_model is defined
-        msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
-
-    - set_fact:
-        cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
-        cloud_region: "{{ opt_provider_region.split('/')[1] }}"
-      when: opt_provider_region is defined
-
-    - name: Find the cloud model
-      set_fact:
-        cloud_model_file: "{{ item }}"
-      with_first_found:
-        - files:
-            - "{{ cloud_model }}.yml"
-            - "{{ cloud_model }}.yaml"
-            - "{{ cloud_model }}"
-          paths:
-            - "{{ model_dir }}"
-            - "{{ playbook_dir }}"
-            - "{{ inventory_dir }}"
-
-    - name: Read in the Cloud Model {{ cloud_model }}
-      include_vars:
-        file: "{{ cloud_model_file }}"
-
-    - include_role:
-        name: cloud-facts
-      vars:
-        - cloud_vpc_name: "{{ vpc_item.name }}"
-        - cloud_vpc_data: "{{ vpc_item }}"
-      with_items: "{{ vpc_list | default([]) }}"
-      tasks_from: instances
-      loop_control:
-        loop_var: vpc_item
-      delegate_to: localhost
-      run_once: yes
-
-- hosts: "control_hosts:&{{ cloud_name }}"
+- hosts: control_hosts
   become: yes
   vars:
     model_dir: "{{ playbook_dir }}/models"
     inventory_root: "{{ playbook_dir }}/inventory"
     key_root: "{{ playbook_dir }}/keys"
-    cloud_instance: "{{ cloud_model.split('.')[0] }}"
-    cloud_project: "{{ lookup('env','USER') }}"
-    cloud_provider: 'aws'
-    cloud_region: 'us-east-1'
-    cloud_user: ec2-user
-    cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
-    cloud_key_name: "{{ cloud_name }}"
-    cloud_vars_file: "{{ key_root }}/{{ cloud_name }}.yml"
+
+    # cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
     cloud_cidr: '10.1.0.0/16'
@@ -90,12 +23,12 @@
     #     name: '*'
     #     state: latest
 
-    - name: Read in the cloud vars
-      include_vars:
-        file: "{{ cloud_vars_file }}"
-        name: cloud_vars
-      tags:
-        - tower_cli
+    # - name: Read in the cloud vars
+    #   include_vars:
+    #     file: "{{ cloud_vars_file }}"
+    #     name: cloud_vars
+    #   tags:
+    #     - tower_cli
 
     - name: Create the lab user
       user:
@@ -158,15 +91,14 @@
                   line="PasswordAuthentication yes"
                   state=present
       become: yes
-      notify: Restart sshd
+      register: result
 
-    - name: Enable syslog UDP
-      lineinfile: dest=/etc/ssh/sshd_config
-                  regexp="^PasswordAuthentication"
-                  line="PasswordAuthentication yes"
-                  state=present
+    - name: Restart sshd
+      systemd:
+        name: sshd
+        state: restarted
       become: yes
-      notify: Restart rsyslogd
+      # when: result.changed
 
     - name: Enable syslog
       blockinfile:
@@ -176,7 +108,14 @@
           $UDPServerRun 514
           $ModLoad imtcp
           $InputTCPServerRun 514
-      notify: Restart rsyslog
+      register: result
+
+    - name: Restart rsyslog
+      systemd:
+        name: rsyslog
+        state: restarted
+      become: yes
+      # when: result.changed
 
     - name: Disable certificate checking for Python
       lineinfile:
@@ -198,24 +137,9 @@
         block: |
           host: localhost
           username: admin
-          password: {{ cloud_vars.password }}
+          password: {{ cloud_password }}
       when: stat_results.stat.exists == false
       become_user: "{{ demo_username }}"
-
-    # - name: Get the password that we've previously specified for Tower
-    #   slurp:
-    #     src: "~{{ demo_username }}/.tower_cli.cfg"
-    #   register: tower_creds
-    #   become_user: "{{ demo_username }}"
-    #
-    # - debug: msg="{{ tower_creds['content'] | b64decode }}"
-    #
-    # - set_fact:
-    #     tower_creds: "{{ tower_creds['content'] | b64decode | to_yaml }}"
-    #
-    # - debug: var=tower_creds
-    #
-    # - meta: end_play
 
     - name: Add EPEL repository
       yum_repository:
@@ -354,46 +278,59 @@
         regexp: 'inventory'
       become_user: "{{ demo_username }}"
 
-    - name: Create the inventory directory
-      file:
-        path: "{{ item }}"
-        state: directory
-        owner: "{{ demo_username }}"
-        mode: 0755
-        recurse: yes
-      with_items:
-        - "{{ demo_root }}/inventory"
-        - "{{ demo_root }}/inventory/host_vars"
-        - "{{ demo_root }}/inventory/group_vars"
+    # - name: Create the inventory directory
+    #   file:
+    #     path: "{{ item }}"
+    #     state: directory
+    #     owner: "{{ demo_username }}"
+    #     mode: 0755
+    #     recurse: yes
+    #   with_items:
+    #     - "{{ demo_root }}/inventory"
+    #     - "{{ demo_root }}/inventory/host_vars"
+    #     - "{{ demo_root }}/inventory/group_vars"
+    #
+    # - name: Create the inventory file on the control node(s)
+    #   template:
+    #     src: control-inventory.j2
+    #     dest: "{{ demo_root }}/inventory/hosts"
+    #     owner: "{{ demo_username }}"
+    #
+    # - name: Create the group_vars files
+    #   copy:
+    #     src: group_vars
+    #     dest: "{{ demo_root }}/inventory"
+    #     owner: "{{ demo_username }}"
+    #
+    # - name: Create the host_vars directories
+    #   file:
+    #     path: "{{ demo_root }}/inventory/host_vars/{{ item.split('.')[0] }}"
+    #     state: directory
+    #     owner: "{{ demo_username }}"
+    #     mode: 0755
+    #   when: hostvars[item].interfaces is defined
+    #   with_items: "{{ groups.network }}"
+    #
+    # - name: Create the interfaces files
+    #   template:
+    #     src: "{{ playbook_dir }}/templates/interfaces.j2"
+    #     dest: "{{ demo_root }}/inventory/host_vars/{{ item.split('.')[0] }}/interfaces.yml"
+    #     owner: "{{ demo_username }}"
+    #   when: hostvars[item].interfaces is defined
+    #   with_items: "{{ groups.network }}"
 
-    - name: Create the inventory file on the control node(s)
-      template:
-        src: control-inventory.j2
-        dest: "{{ demo_root }}/inventory/hosts"
-        owner: "{{ demo_username }}"
-
-    - name: Create the group_vars files
+    - name: Copy the project inventory
       copy:
-        src: group_vars
+        src: "{{ inventory_root }}/{{ cloud_project }}/"
         dest: "{{ demo_root }}/inventory"
         owner: "{{ demo_username }}"
 
-    - name: Create the host_vars directories
-      file:
-        path: "{{ demo_root }}/inventory/host_vars/{{ item.split('.')[0] }}"
-        state: directory
-        owner: "{{ demo_username }}"
-        mode: 0755
-      when: hostvars[item].interfaces is defined
-      with_items: "{{ groups.network }}"
-
-    - name: Create the interfaces files
-      template:
-        src: "{{ playbook_dir }}/templates/interfaces.j2"
-        dest: "{{ demo_root }}/inventory/host_vars/{{ item.split('.')[0] }}/interfaces.yml"
-        owner: "{{ demo_username }}"
-      when: hostvars[item].interfaces is defined
-      with_items: "{{ groups.network }}"
+    - name: Remove sshkey from the inventory file
+      lineinfile:
+        path: "{{ demo_root }}/inventory/{{ cloud_instance }}.yml"
+        state: absent
+        regexp: 'ansible_ssh_private_key_file'
+      become_user: "{{ demo_username }}"
 
     - name: Add the inventory changes
       command: git add inventory
@@ -406,15 +343,17 @@
       args:
         chdir: "{{ demo_root }}"
       become_user: "{{ demo_username }}"
+      ignore_errors: true
 
     - name: Push the inventory changes
       command: git push origin master
       args:
         chdir: "{{ demo_root }}"
       become_user: "{{ demo_username }}"
+      ignore_errors: true
 
     - name: Add tower "{{ demo_username }}" account
-      command: tower-cli user create --username "{{ demo_username }}" --password "{{ cloud_vars.password }}" --is-superuser yes --email labuser@ansible.com
+      command: tower-cli user create --username "{{ demo_username }}" --password "{{ cloud_password }}" --is-superuser yes --email labuser@ansible.com
       become_user: "{{ demo_username }}"
       tags:
         - tower
@@ -441,8 +380,8 @@
         - tower
         - tower_cli
 
-    - name: Add tower demo invetnory
-      command: tower-cli inventory create --name an-demos
+    - name: Add tower demo inventory
+      command: tower-cli inventory create --name an-demos --organization Default
       become_user: "{{ demo_username }}"
       tags:
         - tower
@@ -458,8 +397,11 @@
         - network-banners
         - network-resolver
         - network-tunnels
+        - network-check
         - network-bgp-peers
         - network-bgp-networks
+        - network-checkpoint
+        - network-rollback
       tags:
         - tower
         - tower_cli
@@ -495,15 +437,3 @@
     #     - tower_cli
 
     - debug: msg="Control node public IP = {{ ansible_host }}"
-
-  handlers:
-    - name: Restart sshd
-      systemd:
-        name: sshd
-        state: restarted
-      become: yes
-    - name: Restart rsyslog
-      systemd:
-        name: rsyslog
-        state: restarted
-      become: yes

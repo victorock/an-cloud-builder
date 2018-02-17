@@ -1,6 +1,13 @@
-{% for group in groups %}
-[{{ group }}]
-{% for host in groups[group] %}
-{{ host }} ansible_host={{ hostvars[host].ansible_host }} ansible_network_os={{ hostvars[host].ansible_network_os | default('none') }} ansible_user={{ hostvars[host].ansible_user }} ansible_ssh_private_key_file={{ cloud_private_key_file }} ansible_connection={{ 'netconf' if (hostvars[host].ansible_network_os|default('none') == 'junos') else 'network_cli' }}
+{{ inventory_dict | to_nice_yaml }}
+    children:
+{% for group in group_inventory_dict.keys() %}
+      {{ group }}:
+        hosts:
+{% for host in group_inventory_dict[group] %}
+          {{ host }}:
 {% endfor %}
+{% if default_group_vars[group] is defined %}
+        vars:
+          {{ default_group_vars[group] | to_nice_yaml(indent=10) }}
+{% endif %}
 {% endfor %}
