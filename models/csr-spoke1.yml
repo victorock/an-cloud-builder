@@ -3,7 +3,7 @@ cloud_acls:
   host-acl:
     - { src_ip: 0.0.0.0/0, dst_ports: 22, proto: tcp }
     - { src_ip: 0.0.0.0/0, dst_ports: 443, proto: tcp }
-#    - { src_ip: 0.0.0.0/0, proto: icmp }
+    - { src_ip: 0.0.0.0/0, proto: icmp }
   rtr-acl:
     - { src_ip: 0.0.0.0/0, proto: all }
 vpc_list:
@@ -46,23 +46,20 @@ vpc_list:
             acl: rtr-acl
             private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(-2) | ipaddr('address') }}"
         tags:
-          Owner: "{{ cloud_name }}"
           network_os: ios
-          groups: "network,routers,vpn_spokes,{{ cloud_instance }}"
-        user_data: "{{ lookup('file', 'user-data/cisco-csr') }}"
+          groups: network,routers,spoke_routers
+        user_data: "{{ lookup('file', 'csr.user_data') }}"
       - name: "host1.{{ cloud_name }}"
-        size: medium
-        image: rhel7
+        size: micro
+        image: centos7
         ansible_user: centos
-        # volume_size: 20
         interfaces:
           - name: eth0
             subnet: "inside.vpc1.{{ cloud_name }}"
             acl: host-acl
             private_ip: "{{ cloud_cidr | ipsubnet(24, 2) | ipaddr(10) | ipaddr('address') }}"
         tags:
-          Owner: "{{ cloud_name }}"
-          groups: "hosts,{{ cloud_instance }}"
+          groups: hosts
 
 cloud_image_map:
   aws:

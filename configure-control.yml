@@ -213,6 +213,8 @@
         version: 2.5.0b1
         virtualenv_command: /var/lib/awx/venv/ansible/bin/activate
       when: use_ansible_devel|bool
+      tags:
+        - tower
 
     - name: Install PIP packages into Tower's virtualenv
       pip:
@@ -232,6 +234,8 @@
         - "ansible-tower-cli==3.1.8"
         - xmltodict
         - ncclient
+      tags:
+        - tower
 
     - name: Add IP addresses to /etc/hosts
       lineinfile:

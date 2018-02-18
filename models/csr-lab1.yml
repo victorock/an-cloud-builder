@@ -51,7 +51,7 @@ vpc_list:
         user_data: "{{ lookup('file', 'user-data/cisco-csr') }}"
       - name: "host1.{{ cloud_name }}"
         size: micro
-        image: rhel7
+        image: centos7
         interfaces:
           - name: eth0
             subnet: "inside.vpc.{{ cloud_name }}"
