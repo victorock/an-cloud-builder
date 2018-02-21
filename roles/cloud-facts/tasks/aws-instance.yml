@@ -24,17 +24,29 @@
     instance_group_list: "{{ instance_group_list + [ instance_facts_item.tags.network_os ] }}"
   when: instance_facts_item.tags.network_os is defined
 
+- debug: var=instance_interfaces
+
+- name: Add host to inventory
+  add_host:
+      hostname: "{{ instance_facts_item.tags.Name.split('.')[0] }}"
+      ansible_host: "{{ instance_ip_address }}"
+      ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
+      ansible_network_os: "{{ cloud_instance_item.tags.network_os | default('') }}"
+      groups: "{{ instance_group_list | join(',') }}"
+      private_ip_address: "{{ instance_facts_item.private_ip_address }}"
+      interfaces: "{{ instance_interfaces }}"
+
 - name: Create inventory host entry
   set_fact:
     host_entry:
-          hostname: "{{ instance_facts_item.tags.Name.split('.')[0] }}"
-          ansible_host: "{{ instance_ip_address }}"
-          ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
-          ansible_network_os: "{{ cloud_instance_item.tags.network_os | default('') }}"
-          groups: "{{ instance_group_list | join(',') }}"
-          private_ip_address: "{{ instance_facts_item.private_ip_address }}"
-          # interfaces: "{{ instance_interfaces }}"
-          # ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
+      hostname: "{{ instance_facts_item.tags.Name.split('.')[0] }}"
+      ansible_host: "{{ instance_ip_address }}"
+      ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
+      ansible_network_os: "{{ cloud_instance_item.tags.network_os | default('') }}"
+      groups: "{{ instance_group_list | join(',') }}"
+      private_ip_address: "{{ instance_facts_item.private_ip_address }}"
+      # interfaces: "{{ instance_interfaces }}"
+      # ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
 
 - name: Add host entry to the host_interfaces_dict
   set_fact:
@@ -45,6 +57,11 @@
       host_inventory_dict: "{{ host_inventory_dict | combine({ instance_name: host_entry }) }}"
 
 - debug: var=instance_group_list
+
+# - name: Inititlize group_inventory_dict
+#   set_fact:
+#     group_inventory_dict: {}
+#   when: group_inventory_dict is not defined
 
 - name: Add host entry to the group_inventory_dict
   set_fact:

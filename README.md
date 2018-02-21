@@ -1,4 +1,4 @@
-Ansible Networking Demo Kit
+Ansible Networking Cloud Builder
 =========
 
 This is a set of playbooks used for provisioning ansible networking demos in clouds.  It takes a model and creates that architecture in the cloud provider specified by that blueprint.
@@ -37,18 +37,10 @@ The following options can be defined with `-e`:
 `cloud_name` is derived from `cloud_project` + `cloud_instance` and used to identify
 that deployment.
 
-Note: The same arguments from the build-cloud invocation need to be specified to the following commands.
-
-To create a local inventory of the newly deployed cloud:
-
-```
-ansible-playbook -e 'cloud_model=csr-lab1.yml' local-inventory.yml
-```
-
 To configure the control node (install Ansible, setup Ansible Inventory, etc)
 
 ```
-ansible-playbook -e 'cloud_model=csr-lab1.yml' configure-control.yml
+ansible-playbook -i <inventory> configure-control.yml
 ```
 
 - If you want to skip the deployment of tower on the control node, add `--skip-tags=tower`
