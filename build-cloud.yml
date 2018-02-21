@@ -13,12 +13,12 @@
     cloud_user: ec2-user
     cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
     cloud_key_name: "{{ opt_key_name | default(cloud_name) }}"
-    cloud_vars_file: "{{ key_root }}/{{ cloud_name }}.yml"
     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
     cloud_inventory_file: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}.yml"
     cloud_password: "Ansibull{{ lookup('password', '/dev/null chars=digits length=4') }}"
     cloud_cidr: '10.1.0.0/16'
+    interfaces_in_inventory: no
     default_group_vars:
       ios:
         ansible_connection: network_cli
@@ -30,15 +30,11 @@
         that:
           - cloud_model is defined
         msg: "You must specify a model, e.g. -e 'cloud_model=csr-lab1.yml'"
-      tags:
-        - build
 
     - set_fact:
         cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
         cloud_region: "{{ opt_provider_region.split('/')[1] }}"
       when: opt_provider_region is defined
-      tags:
-        - build
 
     - name: Check to see if cloud_vars file exists
       stat:
@@ -146,23 +142,23 @@
       tags:
         - facts
 
-    - set_fact:
-        inventory_dict:
-          all:
-            hosts: "{{ host_inventory_dict }}"
-            vars:
-              cloud_instance: "{{ cloud_instance }}"
-              cloud_project: "{{ cloud_project }}"
-              cloud_provider: "{{ cloud_provider }}"
-              cloud_region: "{{ cloud_region }}"
-              cloud_user: "{{ cloud_user }}"
-              cloud_key_name: "{{ cloud_key_name }}"
-              cloud_model: "{{ cloud_model }}"
-              cloud_name: "{{ cloud_name }}"
-              cloud_password: "{{ cloud_password }}"
-              ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
-      tags:
-        - facts
+    # - set_fact:
+    #     inventory_dict:
+    #       all:
+    #         hosts: "{{ host_inventory_dict }}"
+    #         vars:
+    #           cloud_instance: "{{ cloud_instance }}"
+    #           cloud_project: "{{ cloud_project }}"
+    #           cloud_provider: "{{ cloud_provider }}"
+    #           cloud_region: "{{ cloud_region }}"
+    #           cloud_user: "{{ cloud_user }}"
+    #           cloud_key_name: "{{ cloud_key_name }}"
+    #           cloud_model: "{{ cloud_model }}"
+    #           cloud_name: "{{ cloud_name }}"
+    #           cloud_password: "{{ cloud_password }}"
+    #           ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
+    #   tags:
+    #     - facts
 
     - name: Create the inventory directory
       file:

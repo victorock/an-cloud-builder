@@ -24,28 +24,10 @@
     instance_group_list: "{{ instance_group_list + [ instance_facts_item.tags.network_os ] }}"
   when: instance_facts_item.tags.network_os is defined
 
-
-# - name: Add host to inventory
-#   add_host:
-#     hostname: "{{ instance_facts_item.tags.Name }}"
-#     ansible_host: "{{ instance_ip_address }}"
-#     ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
-#     groups: "{{ (instance_group_list + [ cloud_name ]) | join(',') }}"
-#     ansible_network_os: "{{ instance_facts_item.tags.network_os | default(omit) }}"
-#     private_ip_address: "{{ instance_facts_item.private_ip_address }}"
-#     interfaces: "{{ instance_interfaces }}"
-#     cloud_project: "{{ cloud_project }}"
-#     cloud_instance: "{{ cloud_instance }}"
-#     cloud_name: "{{ cloud_name }}"
-#     cloud_model: "{{ cloud_model }}"
-#     cloud_template_item: "{{ cloud_instance_item }}"
-#     cloud_vpc_data: "{{ cloud_vpc_data }}"
-#     ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
-
 - name: Create inventory host entry
   set_fact:
     host_entry:
-          # hostname: "{{ instance_facts_item.tags.Name }}"
+          hostname: "{{ instance_facts_item.tags.Name.split('.')[0] }}"
           ansible_host: "{{ instance_ip_address }}"
           ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
           ansible_network_os: "{{ cloud_instance_item.tags.network_os | default('') }}"

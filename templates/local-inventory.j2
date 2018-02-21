@@ -1,13 +1,37 @@
-{{ inventory_dict | to_nice_yaml }}
-    children:
+all:
+  vars:
+    cloud_instance: {{ cloud_instance }}
+    cloud_project: {{ cloud_project }}
+    cloud_provider: {{ cloud_provider }}
+    cloud_region: {{ cloud_region }}
+    cloud_user: {{ cloud_user }}
+    cloud_key_name: {{ cloud_key_name }}
+    cloud_model: {{ cloud_model }}
+    cloud_name: {{ cloud_name }}
+    cloud_password: {{ cloud_password }}
+    ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
+  hosts:
+{% for host in host_inventory_dict.keys() %}
+    {{ host_inventory_dict[host].hostname }}.{{ cloud_instance }}:
+      ansible_host: {{ host_inventory_dict[host].ansible_host }}
+      ansible_user: {{ host_inventory_dict[host].ansible_user }}
+      ansible_network_os: {{ host_inventory_dict[host].ansible_network_os }}
+      groups: {{ host_inventory_dict[host].groups }}
+      private_ip_address: {{ host_inventory_dict[host].private_ip_address }}
+{% if interfaces_in_inventory|bool %}
+      interfaces:
+        {{ host_interfaces_dict[host] | to_nice_yaml | indent(8, False) }}
+{% endif %}
+{% endfor %}
+  children:
 {% for group in group_inventory_dict.keys() %}
-      {{ group }}:
-        hosts:
+    {{ group }}:
+      hosts:
 {% for host in group_inventory_dict[group] %}
-          {{ host }}:
+        {{ host_inventory_dict[host].hostname }}.{{ cloud_instance }}:
 {% endfor %}
 {% if default_group_vars[group] is defined %}
-        vars:
-          {{ default_group_vars[group] | to_nice_yaml(indent=10) }}
+      vars:
+        {{ default_group_vars[group] | to_nice_yaml | indent(8, False) }}
 {% endif %}
 {% endfor %}
