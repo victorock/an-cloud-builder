@@ -3,6 +3,7 @@
   set_fact:
     instance_interfaces: []
     primary_interface: "{{ cloud_instance_item.name.split('.')[0] }}.0"
+    instance_groups: "{{ cloud_instance_item.tags.groups | regex_replace('\\s*', '') }}"
 
 - include_tasks: "azure-interface.yml"
   with_indexed_items: "{{ cloud_instance_item.interfaces | default([]) }}"
@@ -12,8 +13,13 @@
 - name: Set the IP address for the instance
   set_fact:
     instance_ip_address: "{{ public_ip_map[primary_interface] | default(private_ip_map[primary_interface], true) }}"
-    instance_group_list: "{{ cloud_instance_item.tags.groups.split(',')|default([]) + [ cloud_name ] }}"
+    instance_group_list: "{{ instance_groups.split(',')|default([]) + [ cloud_name ] }}"
     instance_name: "{{ cloud_instance_item.name.split('.')[0] }}.{{ cloud_instance }}"
+
+- name: Add ansible_network_os group for network elements
+  set_fact:
+    instance_group_list: "{{ instance_group_list + [ cloud_instance_item.tags.network_os ] }}"
+  when: cloud_instance_item.tags.network_os is defined
 
 - name: Add host to inventory
   add_host:

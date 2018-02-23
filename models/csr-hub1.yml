@@ -16,12 +16,12 @@ vpc_list:
       - name: "outside.{{ cloud_name }}"
         cidr: "{{ cloud_cidr | ipsubnet(24, 0) }}"
         az: "{{ cloud_region }}a"
-        routes:
-          - cidr: "10.0.0.0/8"
-            instance: "rtr.{{ cloud_name }}"
-            if_index: 0
+        # routes:
+        #   - cidr: "10.0.0.0/8"
+        #     instance: "rtr1.{{ cloud_name }}"
+        #     if_index: 0
     instances:
-      - name: "rtr.{{ cloud_name }}"
+      - name: "rtr1.{{ cloud_name }}"
         size: medium
         image: csr-byol
         interfaces:
@@ -33,12 +33,11 @@ vpc_list:
         tags:
           Owner: "{{ cloud_name }}"
           network_os: ios
-          groups: network, routers, hub_routers
+          groups: network,routers,hub_routers
         user_data: "{{ lookup('file', 'csr.user_data') }}"
       - name: "control.{{ cloud_name }}"
         size: medium
         image: rhel7
-        ansible_user: centos
         volume_size: 20
         interfaces:
           - name: eth0
@@ -46,7 +45,7 @@ vpc_list:
             acl: host-acl
             public_ip: true
         tags:
-          groups: hosts, control_hosts
+          groups: hosts,control_hosts
 cloud_image_map:
   aws:
     us-east-1:
