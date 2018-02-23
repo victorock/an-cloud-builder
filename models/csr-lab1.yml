@@ -60,7 +60,7 @@ vpc_list:
           groups: hosts
       - name: "control.{{ cloud_name }}"
         size: medium
-        image: centos7
+        image: rhel7
         volume_size: 20
         interfaces:
           - name: eth0

@@ -37,7 +37,7 @@ vpc_list:
         user_data: "{{ lookup('file', 'csr.user_data') }}"
       - name: "control.{{ cloud_name }}"
         size: medium
-        image: centos7
+        image: rhel7
         ansible_user: centos
         volume_size: 20
         interfaces:

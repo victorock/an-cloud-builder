@@ -16,6 +16,7 @@
 {% set rule_number = 100 %}
 {% for cloud_security_group_rule in cloud_security_group_data %}
 {% if cloud_security_group_rule.proto.upper() != 'ICMP' %}
+{% if not loop.first %},{% endif %}
                   {
                       "name": "rule_{{ loop.index + 100 }}",
                       "properties": {
@@ -28,7 +29,7 @@
                           "destinationAddressPrefix": "{{ cloud_security_group_rule.dst_ip | default('*') }}",
                           "direction": "{{ cloud_security_group_rule.direction | default('Inbound') }}"
                       }
-                  }{% if not loop.last %},{% endif %}
+                  }
 {% set rule_number = rule_number + 1 %}
 {% endif %}
 {% endfor %}{# cloud_security_group_rule #}
