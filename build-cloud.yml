@@ -40,15 +40,7 @@
       stat:
         path: "{{ cloud_inventory_file }}"
       register: stat_results
-    #
-    # - name: Create the cloud vars file
-    #   lineinfile:
-    #     dest: "{{ cloud_vars_file }}"
-    #     line: "password: Ansibull{{ lookup('password', '/tmp/passwordfile chars=digits length=4') }}"
-    #     create: yes
-    #     state: present
-    #   when: stat_results.stat.exists == false
-    #
+
     - name: Read in the existing inventory file
       include_vars:
         file: "{{ cloud_inventory_file }}"
@@ -142,24 +134,6 @@
       tags:
         - facts
 
-    # - set_fact:
-    #     inventory_dict:
-    #       all:
-    #         hosts: "{{ host_inventory_dict }}"
-    #         vars:
-    #           cloud_instance: "{{ cloud_instance }}"
-    #           cloud_project: "{{ cloud_project }}"
-    #           cloud_provider: "{{ cloud_provider }}"
-    #           cloud_region: "{{ cloud_region }}"
-    #           cloud_user: "{{ cloud_user }}"
-    #           cloud_key_name: "{{ cloud_key_name }}"
-    #           cloud_model: "{{ cloud_model }}"
-    #           cloud_name: "{{ cloud_name }}"
-    #           cloud_password: "{{ cloud_password }}"
-    #           ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
-    #   tags:
-    #     - facts
-
     - name: Create the inventory directory
       file:
         path: "{{ item }}"
@@ -182,7 +156,7 @@
 
     - name: Create the host_vars directories
       file:
-        path: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ host_interface_list.key }}"
+        path: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ host_interface_list.key.split('.')[0] }}.{{ cloud_instance }}"
         state: directory
         mode: 0755
       with_dict: "{{ host_interfaces_dict }}"
@@ -194,7 +168,7 @@
     - name: Create the interfaces file
       template:
         src: local-interfaces.j2
-        dest: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ host_interface_list.key }}/interfaces.yml"
+        dest: "{{ inventory_root }}/{{ cloud_project }}/host_vars/{{ host_interface_list.key.split('.')[0] }}.{{ cloud_instance }}/interfaces.yml"
       with_dict: "{{ host_interfaces_dict }}"
       loop_control:
         loop_var: host_interface_list

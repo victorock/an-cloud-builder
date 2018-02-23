@@ -21,11 +21,9 @@ To build the cloud given the model:
 ansible-playbook -e 'cloud_model=csr-lab1.yml' build-cloud.yml
 ```
 
-To destroy the cloud given the model:
+`buid-cloud.yml` creates  inventory file `{{ cloud_instance }}.yml` in directory `./inventory/{{ cloud_project }}`.  `buid-cloud.yml` can be run multiple times with different models and different cloud_instances, but all in the same project.  This allows for building complex cloud architectures using the models as building block.
 
-```
-ansible-playbook -e 'cloud_model=csr-lab1.yml' destroy-cloud.yml
-```
+
 
 The following options can be defined with `-e`:
 - `cloud_model`: The cloud model that you want to deploy into the specified cloud provider (required)
@@ -33,9 +31,15 @@ The following options can be defined with `-e`:
 - `cloud_instance`: The specific instance of the overall project. (defaults to cloud_model)
 - `cloud_provider`: The cloud provider in which to deploy the model. (defaults to aws)
 - `cloud_region`: The region of the cloud provider in which to deploy the model (defaults to us-east-1)
+- `inventory_root`: The root of the inventory file, host_vars, and group_vars.
 
-`cloud_name` is derived from `cloud_project` + `cloud_instance` and used to identify
-that deployment.
+`cloud_name` is derived from `cloud_project` + `cloud_instance` and used to identify that deployment.
+
+To destroy the cloud given the model:
+
+```
+ansible-playbook -e 'cloud_model=csr-lab1.yml' destroy-cloud.yml
+```
 
 To configure the control node (install Ansible, setup Ansible Inventory, etc)
 
@@ -55,6 +59,17 @@ ok: [control] => {
 }
 
 At this point, you can ssh to `labuser@<control IP address>`
+
+`configure-control.yml` performs the following operations:
+
+- Installs Ansible Engine
+- Installs Ansible Tower (unless skipped with `--skip-tags=tower`)
+- Installs the dependencies for the modules
+- creates the labuser account
+- configures syslog to receive log messages
+- creates a local git server
+- copies the inventory of the cloud_project created by `build-cloud.yml` into the `~labuser/an-demos/inventory`.  Note: It removes the cloud_project directory layer.
+
 
 ## Scenarios
 - csr-lab1: Two router setup: 2 x Cisco CSR (IOS)

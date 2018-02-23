@@ -24,11 +24,9 @@
     instance_group_list: "{{ instance_group_list + [ instance_facts_item.tags.network_os ] }}"
   when: instance_facts_item.tags.network_os is defined
 
-- debug: var=instance_interfaces
-
 - name: Add host to inventory
   add_host:
-      hostname: "{{ instance_facts_item.tags.Name.split('.')[0] }}"
+      hostname: "{{ instance_facts_item.tags.Name.split('.')[0] }}.{{ cloud_instance }}"
       ansible_host: "{{ instance_ip_address }}"
       ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
       ansible_network_os: "{{ cloud_instance_item.tags.network_os | default('') }}"

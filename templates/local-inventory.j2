@@ -16,8 +16,9 @@ all:
       ansible_host: {{ host_inventory_dict[host].ansible_host }}
       ansible_user: {{ host_inventory_dict[host].ansible_user }}
       ansible_network_os: {{ host_inventory_dict[host].ansible_network_os }}
-      groups: {{ host_inventory_dict[host].groups }}
       private_ip_address: {{ host_inventory_dict[host].private_ip_address }}
+      groups:
+        {{ host_inventory_dict[host].groups.split(',') | to_nice_yaml | indent(8, False) }}
 {% if interfaces_in_inventory|bool %}
       interfaces:
         {{ host_interfaces_dict[host] | to_nice_yaml | indent(8, False) }}

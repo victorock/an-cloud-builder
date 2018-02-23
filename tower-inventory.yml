@@ -15,10 +15,29 @@
     tower_password: "{{ cloud_password }}"
 
   tasks:
+    - set_fact:
+        cloud_provider: "{{ opt_provider_region.split('/')[0] }}"
+        cloud_region: "{{ opt_provider_region.split('/')[1] }}"
+      when: opt_provider_region is defined
+
     - include_vars:
         file: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}.yml"
         name: cloud_inventory
 
+    - debug: var=cloud_inventory
+
+    - name: Add tower host
+      tower_host:
+        name: "{{ item.key }}"
+        inventory: "{{ cloud_project }}"
+        state: present
+        variables: "{{ item.value }}"
+      with_dict: "{{ cloud_inventory.all.hosts }}"
+
+    # - name: Add hosts to inventory
+    #   add_host:
+    #
+    #   with_dict: "{{ cloud_inventory.all.hosts }}"
 
     # - set_fact:
     #     hostname: "{{ inventory_hostname if (use_full_hostname|bool) else inventory_hostname.split('.')[0] }}"
@@ -74,13 +93,13 @@
     #   with_items: "{{ stat_results.results }}"
     #   delegate_to: localhost
 
-    - name: Add tower host
-      tower_host:
-        name: "{{ item.key }}"
-        inventory: "{{ cloud_project }}"
-        state: present
-        variables: "{{ item.value }}"
-      with_dict: "{{ cloud_inventory.all.hosts }}"
+    # - name: Add tower host
+    #   tower_host:
+    #     name: "{{ item.key }}"
+    #     inventory: "{{ cloud_project }}"
+    #     state: present
+    #     variables: "{{ item.value }}"
+    #   with_dict: "{{ cloud_inventory.all.hosts }}"
 
 
     # - name: Add host to group
