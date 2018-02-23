@@ -1,6 +1,6 @@
 ---
 - set_fact:
-    ssh_public_key_material: "{{ lookup('file', ansible_ssh_public_key_file) }}"
+    ssh_public_key_material: "{{ lookup('file', cloud_public_key_file) }}"
     cloud_storage_group: "{{ cloud_vpc_name.lower() | regex_replace('[^a-z0-9]', '') | truncate(24, False, '') }}"
 
 # - debug: var=cloud_vpc_data.instances
