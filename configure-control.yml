@@ -147,7 +147,7 @@
       yum_repository:
         name: epel
         description: EPEL YUM repo
-        baseurl: https://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+        baseurl: https://download.fedoraproject.org/pub/epel/7/x86_64/
         gpgkey: https://mirror.steadfast.net/epel/RPM-GPG-KEY-EPEL-7
 
     - name: Remove out of date Yum packages
