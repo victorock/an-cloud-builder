@@ -54,7 +54,6 @@ vpc_list:
         size: micro
         image: centos7
         ansible_user: centos
-        key_name: "{{ cloud_name }}"
         interfaces:
           - name: eth0
             subnet: "inside.vpc.{{ cloud_name }}"
