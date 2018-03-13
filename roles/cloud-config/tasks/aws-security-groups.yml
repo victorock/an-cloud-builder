@@ -13,7 +13,7 @@
     vpc_id: "{{ vpc_net_facts.vpcs[0].id }}"
   failed_when: vpc_net_facts.vpcs[0] is not defined
 
-- include: "{{ role_path }}/tasks/aws-security-group.yml cloud_security_group_name={{ cloud_security_group_item }} cloud_security_group_list={{ cloud_security_group_data[cloud_security_group_item] }}"
-  with_items: "{{ cloud_security_group_data.keys() | default([]) }}"
+- include: "{{ role_path }}/tasks/aws-security-group.yml cloud_security_group_name={{ cloud_security_group_item.key }} cloud_security_group_list={{ cloud_security_group_item.value }}"
+  with_dict: "{{ cloud_security_group_data | default({}) }}"
   loop_control:
     loop_var: cloud_security_group_item
