@@ -1,40 +1,42 @@
 all:
   vars:
-    cloud_instance: {{ cloud_instance }}
-    cloud_project: {{ cloud_project }}
-    cloud_provider: {{ cloud_provider }}
-    cloud_region: {{ cloud_region }}
-    cloud_user: {{ cloud_user }}
-    cloud_key_name: {{ cloud_key_name }}
-    cloud_model: {{ cloud_model }}
-    cloud_name: {{ cloud_name }}
-    cloud_password: {{ cloud_password }}
+    {{ cloud_vars | to_nice_yaml | indent(4, False) }}
   hosts:
-{% for host in host_inventory_dict.keys() %}
-    {{ host_inventory_dict[host].hostname }}:
-      ansible_host: {{ host_inventory_dict[host].ansible_host }}
-      ansible_user: {{ host_inventory_dict[host].ansible_user }}
-      ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
-{% if host_inventory_dict[host].ansible_network_os is defined and host_inventory_dict[host].ansible_network_os %}
-      ansible_network_os: {{ host_inventory_dict[host].ansible_network_os }}
+{% for host in hostvars.keys() %}
+    {{ host }}:
+      ansible_host: {{ hostvars[host].ansible_host }}
+      ansible_user: {{ hostvars[host].ansible_user }}
+{% if hostvars[host].ansible_network_os is defined and hostvars[host].ansible_network_os %}
+      ansible_network_os: {{ hostvars[host].ansible_network_os }}
 {% endif %}
-      private_ip_address: {{ host_inventory_dict[host].private_ip_address }}
-      groups:
-        {{ host_inventory_dict[host].groups.split(',') | to_nice_yaml | indent(8, False) }}
+      private_ip_address: {{ hostvars[host].private_ip_address }}
+      groups: "{{ hostvars[host].group_names | join(',') }}"
 {% if interfaces_in_inventory|bool %}
       interfaces:
         {{ host_interfaces_dict[host] | to_nice_yaml | indent(8, False) }}
 {% endif %}
 {% endfor %}
   children:
-{% for group in group_inventory_dict.keys() %}
+{% for group in groups.keys() %}
+{% if (groups[group] | length) and (group != 'all') %}
     {{ group }}:
       hosts:
-{% for host in group_inventory_dict[group] %}
-        {{ host_inventory_dict[host].hostname }}:
+{% for host in groups[group] %}
+        {{ host }}:
 {% endfor %}
-{% if default_group_vars[group] is defined %}
+{% if group == cloud_name %}
+      vars:
+        cloud_instance: {{ cloud_instance }}
+        cloud_provider: {{ cloud_provider }}
+        cloud_region: {{ cloud_region }}
+        cloud_model: {{ cloud_model }}
+        cloud_name: {{ cloud_name }}
+{% elif (cloud_inventory is defined) and (cloud_inventory.all.children[group] is defined) and (cloud_inventory.all.children[group].vars is defined) and (cloud_inventory.all.children[group].vars)%}
+      vars:
+        {{ cloud_inventory.all.children[group].vars | to_nice_yaml | indent(8, False) }}
+{% elif default_group_vars[group] is defined %}
       vars:
         {{ default_group_vars[group] | to_nice_yaml | indent(8, False) }}
+{% endif %}
 {% endif %}
 {% endfor %}

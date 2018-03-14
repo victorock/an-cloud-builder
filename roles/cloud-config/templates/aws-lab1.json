@@ -1,0 +1,1831 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "hub.scarter": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "InstanceTenancy": "default",
+                "EnableDnsSupport": "true",
+                "EnableDnsHostnames": "true",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "hub.scarter"
+                    }
+                ]
+            }
+        },
+        "igw.hub.scarter": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {}
+        },
+        "gw1": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc6b54f610"
+                },
+                "InternetGatewayId": {
+                    "Ref": "igwd6d419ae"
+                }
+            }
+        },
+        "mgmt.hub.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "hub.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "mgmt.hub.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "hub.scarter"
+                    }
+                ]
+            }
+        },
+        "rtb.mgmt.hub.scarter": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpcfb56f480"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "mgmt.hub.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "route1": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "GatewayId": {
+                    "Ref": "igwd6d419ae"
+                }
+            },
+            "DependsOn": "gw1"
+        },
+        "outside.hub.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.0.1.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "hub.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "outside.hub.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "hub.scarter"
+                    }
+                ]
+            }
+        },
+        "rtbf91acb85": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpcfb56f480"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "outside.hub.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "inside.hub.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.0.2.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "hub.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "inside.hub.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "hub.scarter"
+                    }
+                ]
+            }
+        },
+        "rtbd2ef3eae": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpcfb56f480"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "inside.hub.scarter"
+                    }
+                ]
+            }
+        },
+        "route3": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtb14ed3c68"
+                },
+                "NetworkInterfaceId": {
+                    "Ref": "enib1280aa8"
+                }
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "site1.scarter": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.1.0.0/16",
+                "InstanceTenancy": "default",
+                "EnableDnsSupport": "true",
+                "EnableDnsHostnames": "true",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "site1.scarter"
+                    }
+                ]
+            }
+        },
+        "gw2": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpcfb56f480"
+                },
+                "InternetGatewayId": {
+                    "Ref": "igw3ed41946"
+                }
+            }
+        },
+        "igw.site1.scarter": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {}
+        },
+        "mgmt.site1.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.1.0.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "site1.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "mgmt.site1.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "site1.scarter"
+                    }
+                ]
+            }
+        },
+        "rtb981ccde4": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc2526845e"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "mgmt.site1.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "inside.site1.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.1.2.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "site1.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "tenant",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "inside.site1.scarter"
+                    }
+                ]
+            }
+        },
+        "rtb14ed3c68": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc2526845e"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "inside.site1.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "outside.site1.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.1.1.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "site1.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "outside.site1.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "site1.scarter"
+                    }
+                ]
+            }
+        },
+        "rtbc61bcaba": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc2526845e"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "outside.site1.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "site2.scarter": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.2.0.0/16",
+                "InstanceTenancy": "default",
+                "EnableDnsSupport": "true",
+                "EnableDnsHostnames": "true",
+                "Tags": [
+                    {
+                        "Key": "tenant",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "site2.scarter"
+                    }
+                ]
+            }
+        },
+        "igw.site2.scarter": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {}
+        },
+        "gw3": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc2526845e"
+                },
+                "InternetGatewayId": {
+                    "Ref": "igw54c5082c"
+                }
+            }
+        },
+        "inside.site2.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.2.2.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "site2.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "inside.site2.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "site2.scarter"
+                    }
+                ]
+            }
+        },
+        "rtb39ea3b45": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc6b54f610"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "inside.site2.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "mgmt.site2.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.2.0.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "site2.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "mgmt.site2.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "site2.scarter"
+                    }
+                ]
+            }
+        },
+        "rtbe913c295": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc6b54f610"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "mgmt.site2.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "outside.site2.scarter": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "CidrBlock": "10.2.1.0/24",
+                "AvailabilityZone": "us-east-1a",
+                "VpcId": {
+                    "Ref": "site2.scarter"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "outside.site2.scarter"
+                    },
+                    {
+                        "Key": "tenant",
+                        "Value": "site2.scarter"
+                    }
+                ]
+            }
+        },
+        "rtbe5ec3d99": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc6b54f610"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "outside.site2.scarter"
+                    }
+                ]
+            }
+        },
+        "subnetroute1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "rtbe5ec3d99"
+                },
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                }
+            }
+        },
+        "acl96c5faed": {
+            "Type": "AWS::EC2::NetworkAcl",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc6b54f610"
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "ef9ac93b-6952-4b73-8c86-8864eccca744"
+                }
+            }
+        },
+        "acl06ccf37d": {
+            "Type": "AWS::EC2::NetworkAcl",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpcfb56f480"
+                }
+            }
+        },
+        "acl5cd3ec27": {
+            "Type": "AWS::EC2::NetworkAcl",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc2526845e"
+                }
+            }
+        },
+        "rtbfe1ccd82": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc6b54f610"
+                }
+            }
+        },
+        "rtb9215c4ee": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpc2526845e"
+                }
+            }
+        },
+        "rtb79ed3c05": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "vpcfb56f480"
+                }
+            }
+        },
+        "eip1072375127": {
+            "Type": "AWS::EC2::EIP",
+            "DependsOn": [
+                "gw1",
+                "gw2",
+                "gw3"
+            ],
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "eip341926370": {
+            "Type": "AWS::EC2::EIP",
+            "DependsOn": [
+                "gw1",
+                "gw2",
+                "gw3"
+            ],
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "eip34193148188": {
+            "Type": "AWS::EC2::EIP",
+            "DependsOn": [
+                "gw1",
+                "gw2",
+                "gw3"
+            ],
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "control.hub.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-26ebbc5c",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "Role",
+                        "Value": "control.hub.scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "hosts,control_hosts"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "hub"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "control.hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    }
+                ]
+            }
+        },
+        "control.hub.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-26ebbc5c",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "control.hub.scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "control.hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "hub"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "hosts,control_hosts"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "hub.scarter"
+                    }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "DeleteOnTermination": "true",
+                        "DeviceIndex": 0,
+                        "SubnetId": {
+                            "Ref": "subnetfdd53bb7"
+                        },
+                        "PrivateIpAddresses": [
+                            {
+                                "PrivateIpAddress": "10.0.2.116",
+                                "Primary": "true"
+                            }
+                        ],
+                        "GroupSet": [
+                            {
+                                "Ref": "sghostacl"
+                            }
+                        ],
+                        "AssociatePublicIpAddress": "true"
+                    }
+                ]
+            }
+        },
+        "rtr1.hub.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-bcbfb9c7",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "network_os",
+                        "Value": "ios"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "rtr1.hub.scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "network,routers,hub_routers"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "rtr1.hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "hub"
+                    }
+                ]
+            }
+        },
+        "rtr1.hub.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-bcbfb9c7",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "groups",
+                        "Value": "network,routers,hub_routers"
+                    },
+                    {
+                        "Key": "network_os",
+                        "Value": "ios"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "rtr1.hub.scarter"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "rtr1.hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "hub"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "hub.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "DeleteOnTermination": "true",
+                        "DeviceIndex": 0,
+                        "SubnetId": {
+                            "Ref": "subnet15d7395f"
+                        },
+                        "PrivateIpAddresses": [
+                            {
+                                "PrivateIpAddress": "10.0.0.254",
+                                "Primary": "true"
+                            }
+                        ],
+                        "GroupSet": [
+                            {
+                                "Ref": "sgrtracl"
+                            }
+                        ],
+                        "AssociatePublicIpAddress": "true"
+                    }
+                ]
+            }
+        },
+        "rtr1.hub.scarter.2": {
+            "Type": "AWS::EC2::NetworkInterface",
+            "Properties": {
+                "Description": "rtr1.hub.scarter.GigabitEthernet2",
+                "SourceDestCheck": "true",
+                "SubnetId": {
+                    "Ref": "subnetc3d43a89"
+                },
+                "PrivateIpAddresses": [
+                    {
+                        "PrivateIpAddress": "10.0.1.254",
+                        "Primary": "true"
+                    }
+                ],
+                "GroupSet": [
+                    {
+                        "Ref": "sgrtracl"
+                    }
+                ]
+            }
+        },
+        "rtr1.hub.scarter.3": {
+            "Type": "AWS::EC2::NetworkInterface",
+            "Properties": {
+                "Description": "rtr1.hub.scarter.GigabitEthernet3",
+                "SourceDestCheck": "true",
+                "SubnetId": {
+                    "Ref": "subnetfdd53bb7"
+                },
+                "PrivateIpAddresses": [
+                    {
+                        "PrivateIpAddress": "10.0.2.254",
+                        "Primary": "true"
+                    }
+                ],
+                "GroupSet": [
+                    {
+                        "Ref": "sgrtracl"
+                    }
+                ]
+            }
+        },
+        "host1.site1.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-c998b6b2",
+                "InstanceType": "t2.micro",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site1"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "host1.site1.scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "hosts"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "host1.site1.scarter"
+                    }
+                ]
+            }
+        },
+        "host1.site1.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-c998b6b2",
+                "InstanceType": "t2.micro",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "Role",
+                        "Value": "host1.site1.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "host1.site1.scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site1"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "hosts"
+                    }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "DeleteOnTermination": "true",
+                        "DeviceIndex": 0,
+                        "SubnetId": {
+                            "Ref": "subnet29c32d63"
+                        },
+                        "PrivateIpAddresses": [
+                            {
+                                "PrivateIpAddress": "10.1.2.10",
+                                "Primary": "true"
+                            }
+                        ],
+                        "GroupSet": [
+                            {
+                                "Ref": "sghostacl"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "rtr1.site1.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-bcbfb9c7",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "rtr1.site1.scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site1"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "network,routers,spoke_routers"
+                    },
+                    {
+                        "Key": "network_os",
+                        "Value": "ios"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "rtr1.site1.scarter"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    }
+                ]
+            }
+        },
+        "rtr1.site1.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-bcbfb9c7",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "Environment",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site1.scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site1"
+                    },
+                    {
+                        "Key": "network_os",
+                        "Value": "ios"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "network,routers,spoke_routers"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "rtr1.site1.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "rtr1.site1.scarter"
+                    }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "DeleteOnTermination": "true",
+                        "DeviceIndex": 0,
+                        "SubnetId": {
+                            "Ref": "subnet6ac02e20"
+                        },
+                        "PrivateIpAddresses": [
+                            {
+                                "PrivateIpAddress": "10.1.0.254",
+                                "Primary": "true"
+                            }
+                        ],
+                        "GroupSet": [
+                            {
+                                "Ref": "sgrtracl"
+                            }
+                        ],
+                        "AssociatePublicIpAddress": "true"
+                    }
+                ]
+            }
+        },
+        "rtr1.site1.scarter.2": {
+            "Type": "AWS::EC2::NetworkInterface",
+            "Properties": {
+                "Description": "rtr1.site1.scarter.GigabitEthernet2",
+                "SourceDestCheck": "true",
+                "SubnetId": {
+                    "Ref": "subnet5cde3016"
+                },
+                "PrivateIpAddresses": [
+                    {
+                        "PrivateIpAddress": "10.1.1.254",
+                        "Primary": "true"
+                    }
+                ],
+                "GroupSet": [
+                    {
+                        "Ref": "sgrtracl"
+                    }
+                ]
+            }
+        },
+        "rtr1.site1.scarter.3": {
+            "Type": "AWS::EC2::NetworkInterface",
+            "Properties": {
+                "Description": "rtr1.site1.scarter.GigabitEthernet3",
+                "SubnetId": {
+                    "Ref": "subnet29c32d63"
+                },
+                "PrivateIpAddresses": [
+                    {
+                        "PrivateIpAddress": "10.1.2.254",
+                        "Primary": "true"
+                    }
+                ],
+                "GroupSet": [
+                    {
+                        "Ref": "sgrtracl"
+                    }
+                ]
+            }
+        },
+        "host1.site2.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-c998b6b2",
+                "InstanceType": "t2.micro",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "Environment",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site2"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "hosts"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "host1.site2.scarter"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "host1.site2.scarter"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site2.scarter"
+                    }
+                ]
+            }
+        },
+        "host1.site2.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-c998b6b2",
+                "InstanceType": "t2.micro",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "Environment",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "host1.site2.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "host1.site2.scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site2"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "hosts"
+                    }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "DeleteOnTermination": "true",
+                        "DeviceIndex": 0,
+                        "SubnetId": {
+                            "Ref": "subnet48da3402"
+                        },
+                        "PrivateIpAddresses": [
+                            {
+                                "PrivateIpAddress": "10.2.2.10",
+                                "Primary": "true"
+                            }
+                        ],
+                        "GroupSet": [
+                            {
+                                "Ref": "sghostacl"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "rtr1.site2.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-bcbfb9c7",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site2"
+                    },
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "network,routers,spoke_routers"
+                    },
+                    {
+                        "Key": "network_os",
+                        "Value": "ios"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "rtr1.site2.scarter"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "rtr1.site2.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    }
+                ]
+            }
+        },
+        "rtr1.site2.scarter": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "DisableApiTermination": "false",
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-bcbfb9c7",
+                "InstanceType": "t2.medium",
+                "KeyName": "scarter",
+                "Monitoring": "false",
+                "Tags": [
+                    {
+                        "Key": "cloud_name",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "rtr1.site2.scarter"
+                    },
+                    {
+                        "Key": "groups",
+                        "Value": "network,routers,spoke_routers"
+                    },
+                    {
+                        "Key": "Owner",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "cloud_instance",
+                        "Value": "site2"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "site2.scarter"
+                    },
+                    {
+                        "Key": "cloud_project",
+                        "Value": "scarter"
+                    },
+                    {
+                        "Key": "Role",
+                        "Value": "rtr1.site2.scarter"
+                    },
+                    {
+                        "Key": "network_os",
+                        "Value": "ios"
+                    }
+                ],
+                "NetworkInterfaces": [
+                    {
+                        "DeleteOnTermination": "true",
+                        "DeviceIndex": 0,
+                        "SubnetId": {
+                            "Ref": "subnet9adc32d0"
+                        },
+                        "PrivateIpAddresses": [
+                            {
+                                "PrivateIpAddress": "10.2.0.254",
+                                "Primary": "true"
+                            }
+                        ],
+                        "GroupSet": [
+                            {
+                                "Ref": "sgrtracl"
+                            }
+                        ],
+                        "AssociatePublicIpAddress": "true"
+                    }
+                ]
+            }
+        },
+        "rtr1.site2.scarter.2": {
+            "Type": "AWS::EC2::NetworkInterface",
+            "Properties": {
+                "Description": "rtr1.site2.scarter.GigabitEthernet2",
+                "SourceDestCheck": "true",
+                "SubnetId": {
+                    "Ref": "subnetd6d6389c"
+                },
+                "PrivateIpAddresses": [
+                    {
+                        "PrivateIpAddress": "10.2.1.254",
+                        "Primary": "true"
+                    }
+                ],
+                "GroupSet": [
+                    {
+                        "Ref": "sgrtracl"
+                    }
+                ]
+            }
+        },
+        "rtr1.site2.scarter.3": {
+            "Type": "AWS::EC2::NetworkInterface",
+            "Properties": {
+                "Description": "rtr1.site2.scarter.GigabitEthernet3",
+                "SubnetId": {
+                    "Ref": "subnet48da3402"
+                },
+                "PrivateIpAddresses": [
+                    {
+                        "PrivateIpAddress": "10.2.2.254",
+                        "Primary": "true"
+                    }
+                ],
+                "GroupSet": [
+                    {
+                        "Ref": "sgrtracl"
+                    }
+                ]
+            }
+        },
+        "sghostacl": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "host-acl.hub.scarter",
+                "VpcId": {
+                    "Ref": "vpcfb56f480"
+                }
+            }
+        },
+        "sgrtracl": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "rtr-acl.site2.scarter",
+                "VpcId": {
+                    "Ref": "vpc6b54f610"
+                }
+            }
+        },
+        "route2": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtbe913c295"
+                },
+                "GatewayId": {
+                    "Ref": "igwd6d419ae"
+                }
+            },
+            "DependsOn": "gw1"
+        },
+        "route4": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtb33ef3e4f"
+                },
+                "GatewayId": {
+                    "Ref": "igw3ed41946"
+                }
+            },
+            "DependsOn": "gw2"
+        },
+        "route5": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtbce9440b2"
+                },
+                "GatewayId": "igw-5269a92a"
+            }
+        },
+        "route6": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtbc61bcaba"
+                },
+                "GatewayId": {
+                    "Ref": "igw54c5082c"
+                }
+            },
+            "DependsOn": "gw3"
+        },
+        "route7": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "10.0.0.0/8",
+                "RouteTableId": {
+                    "Ref": "rtbd2ef3eae"
+                },
+                "InstanceId": {
+                    "Ref": "instancei06a292e5186231eba"
+                }
+            }
+        },
+        "route8": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtbd2ef3eae"
+                },
+                "GatewayId": {
+                    "Ref": "igw3ed41946"
+                }
+            },
+            "DependsOn": "gw2"
+        },
+        "route9": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtb981ccde4"
+                },
+                "GatewayId": {
+                    "Ref": "igw54c5082c"
+                }
+            },
+            "DependsOn": "gw3"
+        },
+        "route10": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtb39ea3b45"
+                },
+                "NetworkInterfaceId": {
+                    "Ref": "eni2736143e"
+                }
+            }
+        },
+        "route11": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "RouteTableId": {
+                    "Ref": "rtbf91acb85"
+                },
+                "GatewayId": {
+                    "Ref": "igw3ed41946"
+                }
+            },
+            "DependsOn": "gw2"
+        },
+        "assoc1": {
+            "Type": "AWS::EC2::EIPAssociation",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "eip341926370",
+                        "AllocationId"
+                    ]
+                },
+                "NetworkInterfaceId": {
+                    "Ref": "enic32705da"
+                }
+            }
+        },
+        "assoc2": {
+            "Type": "AWS::EC2::EIPAssociation",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "eip1072375127",
+                        "AllocationId"
+                    ]
+                },
+                "NetworkInterfaceId": {
+                    "Ref": "eni09577510"
+                }
+            }
+        },
+        "assoc3": {
+            "Type": "AWS::EC2::EIPAssociation",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "eip34193148188",
+                        "AllocationId"
+                    ]
+                },
+                "NetworkInterfaceId": {
+                    "Ref": "enif73210ee"
+                }
+            }
+        },
+        "eniattach1": {
+            "Type": "AWS::EC2::NetworkInterfaceAttachment",
+            "Properties": {
+                "DeviceIndex": "1",
+                "NetworkInterfaceId": {
+                    "Ref": "enic32705da"
+                },
+                "InstanceId": {
+                    "Ref": "instancei00836908298d36048"
+                }
+            }
+        },
+        "eniattach2": {
+            "Type": "AWS::EC2::NetworkInterfaceAttachment",
+            "Properties": {
+                "DeleteOnTermination": "true",
+                "DeviceIndex": "2",
+                "NetworkInterfaceId": {
+                    "Ref": "enib1280aa8"
+                },
+                "InstanceId": {
+                    "Ref": "instancei00836908298d36048"
+                }
+            }
+        },
+        "eniattach3": {
+            "Type": "AWS::EC2::NetworkInterfaceAttachment",
+            "Properties": {
+                "DeviceIndex": "1",
+                "NetworkInterfaceId": {
+                    "Ref": "eni09577510"
+                },
+                "InstanceId": {
+                    "Ref": "instancei06a292e5186231eba"
+                }
+            }
+        },
+        "eniattach4": {
+            "Type": "AWS::EC2::NetworkInterfaceAttachment",
+            "Properties": {
+                "DeviceIndex": "2",
+                "NetworkInterfaceId": {
+                    "Ref": "eni215c7e38"
+                },
+                "InstanceId": {
+                    "Ref": "instancei06a292e5186231eba"
+                }
+            }
+        },
+        "eniattach5": {
+            "Type": "AWS::EC2::NetworkInterfaceAttachment",
+            "Properties": {
+                "DeleteOnTermination": "true",
+                "DeviceIndex": "2",
+                "NetworkInterfaceId": {
+                    "Ref": "eni2736143e"
+                },
+                "InstanceId": {
+                    "Ref": "instancei038aa95cc3eab9d5a"
+                }
+            }
+        },
+        "eniattach6": {
+            "Type": "AWS::EC2::NetworkInterfaceAttachment",
+            "Properties": {
+                "DeviceIndex": "1",
+                "NetworkInterfaceId": {
+                    "Ref": "enif73210ee"
+                },
+                "InstanceId": {
+                    "Ref": "instancei038aa95cc3eab9d5a"
+                }
+            }
+        },
+        "ingress1": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "22",
+                "ToPort": "22",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress2": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "443",
+                "ToPort": "443",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress3": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "icmp",
+                "FromPort": "8",
+                "ToPort": "-1",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress4": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sgrtracl"
+                },
+                "IpProtocol": "-1",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress5": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sgrtracl"
+                },
+                "IpProtocol": "-1",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress6": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sgscartercloudformerWebServerSecurityGroup19II54G23WPWF"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "443",
+                "ToPort": "443",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress7": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "22",
+                "ToPort": "22",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress8": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "443",
+                "ToPort": "443",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress9": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "icmp",
+                "FromPort": "8",
+                "ToPort": "-1",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress10": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sgrtracl"
+                },
+                "IpProtocol": "-1",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress11": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "22",
+                "ToPort": "22",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress12": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "443",
+                "ToPort": "443",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+        "ingress13": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "sghostacl"
+                },
+                "IpProtocol": "icmp",
+                "FromPort": "8",
+                "ToPort": "-1",
+                "CidrIp": "0.0.0.0/0"
+            }
+        }
+    }
+}

@@ -26,13 +26,13 @@
 
 - name: Add host to inventory
   add_host:
-      hostname: "{{ instance_name }}"
-      ansible_host: "{{ instance_ip_address }}"
-      ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
-      ansible_network_os: "{{ cloud_instance_item.tags.network_os | default('') }}"
-      groups: "{{ instance_group_list | join(',') }}"
-      private_ip_address: "{{ instance_facts_item.private_ip_address }}"
-      interfaces: "{{ instance_interfaces }}"
+    name: "{{ instance_name }}"
+    ansible_host: "{{ instance_ip_address }}"
+    ansible_user: "{{ cloud_instance_item.ansible_user | default(cloud_user) }}"
+    ansible_network_os: "{{ cloud_instance_item.tags.network_os | default('') }}"
+    groups: "{{ instance_group_list | join(',') }}"
+    private_ip_address: "{{ instance_facts_item.private_ip_address }}"
+    interfaces: "{{ instance_interfaces }}"
 
 - name: Create inventory host entry
   set_fact:

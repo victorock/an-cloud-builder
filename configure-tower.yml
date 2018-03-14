@@ -1,0 +1,50 @@
+---
+- hosts: control_hosts
+  gather_facts: no
+  tasks:
+    - debug: var=hostvars
+
+    - set_fact:
+        control_host: "{{ groups.control_hosts[0] }}"
+
+    - set_fact:
+        tower_api_endpoint: "{{ hostvars[control_host].ansible_host }}"
+        tower_api_username: labuser
+        tower_api_password: "{{ cloud_password }}"
+        validate_certs: no
+
+    - include_role:
+        name: tower_api
+        tasks_from: inventories
+      vars:
+        tower_api_inventory_name: "{{ cloud_project }}"
+      run_once: yes
+
+    - include_role:
+        name: tower_api
+        tasks_from: hosts
+      vars:
+        validate_certs: no
+        tower_api_inventory_name: "{{ cloud_project }}"
+        tower_api_host_name: "{{ item }}"
+        tower_api_host_vars:
+          ansible_host: "{{ hostvars[item].ansible_host }}"
+          ansible_user: "{{ hostvars[item].ansible_user }}"
+          ansible_network_os: "{{ hostvars[item].ansible_network_os | default(omit) }}"
+          interfaces: "{{ hostvars[item].interfaces }}"
+      with_items: "{{ groups.all }}"
+
+    - include_role:
+        name: tower_api
+        tasks_from: groups
+      vars:
+        validate_certs: no
+        tower_api_inventory_name: "{{ cloud_project }}"
+        tower_api_group_name: "{{ item.key }}"
+        tower_api_group_members: "{{ item.value }}"
+      with_dict: "{{ groups }}"
+      when: item.key != 'all'
+      run_once: yes
+
+    - debug: var=tower_api_group_map
+    - debug: var=tower_api_host_map

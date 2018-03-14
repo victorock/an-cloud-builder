@@ -59,6 +59,6 @@
     template: "{{ lookup('template', 'azure_deploy.json.j2') }}"
 
 # Pause for 5 minutes to build app cache.
-# - name: Wait for the Azure deployment
-#   pause:
-#     minutes: 5
+- name: Wait for the Azure deployment
+  pause:
+    minutes: 2

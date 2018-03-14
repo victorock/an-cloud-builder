@@ -58,23 +58,8 @@
         cloud_instance: "{{ cloud_instance }}"
         cloud_name: "{{ cloud_name }}"
 
-- debug: var=cloud_instance_item.user_data_file
+- include_tasks: "get-user-data.yml"
   when: cloud_instance_item.user_data_file is defined
-
-- name: Find the cloud user data file
-  set_fact:
-    cloud_user_data: "{{ lookup('file', item) }}"
-  with_first_found:
-    - files:
-        - "{{ cloud_instance_item.user_data_file }}"
-        - "{{ cloud_instance_item.user_data_file }}.user_data"
-      paths:
-        - "{{ playbook_dir }}"
-        - "{{ playbook_dir }}/user-data"
-        - "{{ playbook_dir }}/files"
-        - "{{ inventory_dir }}"
-      skip: true
-
 
 - name: Create AWS Instance {{ cloud_instance_item.name }} in {{ cloud_vpc_data.region }}
   ec2:

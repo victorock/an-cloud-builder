@@ -15,14 +15,17 @@
     cloud_key_name: "{{ opt_key_name | default(cloud_project) }}"
     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
-    cloud_inventory_file: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}.yml"
+    cloud_inventory_file: "{{ inventory_root }}/{{ cloud_project }}/hosts.yml"
+    cloud_vars_file: "{{ inventory_root }}/{{ cloud_project }}/all-vars.yml"
     cloud_password: "Ansibull{{ lookup('password', '/dev/null chars=digits length=4') }}"
     cloud_cidr: '10.1.0.0/16'
     interfaces_in_inventory: no
     default_group_vars:
       ios:
+        ansible_network_os: ios
         ansible_connection: network_cli
       junos:
+        ansible_network_os: junos
         ansible_connection: netconf
 
   tasks:
@@ -36,12 +39,12 @@
         cloud_region: "{{ opt_provider_region.split('/')[1] }}"
       when: opt_provider_region is defined
 
-    - name: Check to see if cloud_vars file exists
+    - name: Check to see if cloud_inventory file exists
       stat:
         path: "{{ cloud_inventory_file }}"
       register: stat_results
 
-    - name: Read in the existing inventory file
+    - name: Read in the existing vars file
       include_vars:
         file: "{{ cloud_inventory_file }}"
         name: cloud_inventory
@@ -147,12 +150,6 @@
       tags:
         - facts
 
-    - name: Create the inventory file on the local node
-      template:
-        src: local-inventory.j2
-        dest: "{{ cloud_inventory_file }}"
-      tags:
-        - facts
 
     - name: Create the host_vars directories
       file:
@@ -175,9 +172,68 @@
       tags:
         - facts
 
+    - name: Create cloud_vars
+      set_fact:
+        cloud_vars:
+          cloud_project: "{{ cloud_project }}"
+          cloud_user: "{{ cloud_user }}"
+          cloud_key_name: "{{ cloud_key_name }}"
+          cloud_password: "{{ cloud_password }}"
+          ansible_ssh_private_key_file: "{{ cloud_private_key_file }}"
+      tags:
+        - facts
+
+
+    - name: Add host to inventory
+      add_host:
+        name: "{{ inventory_item.key }}"
+        ansible_host: "{{ inventory_item.value.ansible_host }}"
+        ansible_user: "{{ inventory_item.value.ansible_user }}"
+        ansible_network_os: "{{ inventory_item.value.ansible_network_os | default(omit) }}"
+        groups: "{{ inventory_item.value.groups }}"
+        private_ip_address: "{{ inventory_item.value.private_ip_address }}"
+        interfaces: "{{ inventory_item.value.interfaces | default(omit) }}"
+      with_dict: "{{ cloud_inventory.all.hosts }}"
+      when: (cloud_inventory is defined) and (cloud_inventory.all.hosts is defined) and (hostvars[inventory_item.key] is not defined)
+      loop_control:
+        loop_var: inventory_item
+      tags:
+        - facts
+
+    - debug: var=hostvars
+      tags:
+        - facts
+
+    - debug: var=groups
+
+    # - name: End
+    #   meta: end_play
+
+    - name: Create the inventory file on the local node
+      template:
+        src: local-inventory.j2
+        dest: "{{ cloud_inventory_file }}"
+      tags:
+        - facts
+
+    # - name: Write out cloud_vars
+    #   copy:
+    #     content: "{{ cloud_vars | to_nice_yaml }}"
+    #     dest: "{{ cloud_vars_file }}"
+
     - name: Copy group_vars
       copy:
         src: group_vars
         dest: "{{ inventory_root }}/{{ cloud_project }}"
       tags:
         - facts
+
+    - name: Copy group_vars
+      copy:
+        src: group_vars
+        dest: "{{ inventory_root }}/{{ cloud_project }}"
+      tags:
+        - facts
+
+
+    - debug: var=cloud_inventory.all.children

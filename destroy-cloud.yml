@@ -13,6 +13,7 @@
     cloud_user: ec2-user
     cloud_name: "{{ cloud_instance }}.{{ cloud_project }}"
     cloud_key_name: "{{ opt_key_name | default(cloud_name) }}"
+    cloud_inventory_file: "{{ inventory_root }}/{{ cloud_project }}/{{ cloud_instance }}.yml"
     cloud_private_key_file: "{{ key_root }}/{{ cloud_key_name }}.key"
     cloud_public_key_file: "{{ key_root }}/{{ cloud_key_name }}.key.pub"
     cloud_cidr: '10.1.0.0/16'
@@ -55,3 +56,8 @@
         loop_var: vpc_item
       delegate_to: localhost
       run_once: yes
+
+    - name: Delete the cloud inventory file
+      file:
+        path: "{{ cloud_inventory_file }}"
+        state: absent

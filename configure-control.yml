@@ -147,16 +147,21 @@
       yum_repository:
         name: epel
         description: EPEL YUM repo
-        baseurl: https://download.fedoraproject.org/pub/epel/7/x86_64/
-        gpgkey: https://mirror.steadfast.net/epel/RPM-GPG-KEY-EPEL-7
+        baseurl: "https://download.fedoraproject.org/pub/epel/{{ ansible_distribution_major_version }}/x86_64/"
+        gpgkey: "https://mirror.steadfast.net/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
 
-    - name: Remove out of date Yum packages
-      yum:
-        name: "{{ item }}"
-        state: absent
-      with_items:
-        - python-requests
-        - pyOpenSSL
+    # - name: Install EPEL
+    #   yum:
+    #     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    #     state: present
+
+    # - name: Remove out of date Yum packages
+    #   yum:
+    #     name: "{{ item }}"
+    #     state: absent
+    #   with_items:
+    #     - python-requests
+    #     - pyOpenSSL
 
     - name: Install YUM packages
       yum:
@@ -240,7 +245,7 @@
     - name: Add IP addresses to /etc/hosts
       lineinfile:
         dest: /etc/hosts
-        line: "{{ hostvars[item].ansible_host }} {{ hostvars[item].inventory_hostname.split('.')[0] }}"
+        line: "{{ hostvars[item].ansible_host }} {{ hostvars[item].inventory_hostname.split('.')[0] }}.{{ hostvars[item].cloud_instance }}"
         state: present
       with_items: "{{ groups.all }}"
 
@@ -335,7 +340,7 @@
 
     - name: Remove sshkey from the inventory file
       lineinfile:
-        path: "{{ demo_root }}/inventory/{{ cloud_instance }}.yml"
+        path: "{{ demo_root }}/inventory/hosts.yml"
         state: absent
         regexp: 'ansible_ssh_private_key_file'
       become_user: "{{ demo_username }}"
@@ -410,6 +415,8 @@
         - network-bgp-networks
         - network-checkpoint
         - network-rollback
+        - network-system
+        - network-security
       tags:
         - tower
         - tower_cli
