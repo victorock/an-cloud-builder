@@ -30,6 +30,7 @@ vpc_list:
       - name: "srx.vpc.{{ cloud_name }}"
         size: xlarge
         image: srx-payg
+        ansible_user: root
         interfaces:
           - name: GigabitEthernet1
             subnet: "mgmt.vpc.{{ cloud_name }}"
@@ -49,7 +50,6 @@ vpc_list:
           Owner: "{{ cloud_name }}"
           network_os: junos
           groups: "network, routers, vpn_spokes, {{ cloud_instance }}"
-        user_data: "{{ lookup('file', 'user-data/junos') }}"
       - name: "host1.{{ cloud_name }}"
         size: medium
         image: rhel7
